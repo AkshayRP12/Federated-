@@ -1,0 +1,55 @@
+{
+  "history": [
+    {
+      "round": 0,
+      "loss": 2.304269812901815,
+      "accuracy": 0.07666666666666666,
+      "macro_f1": 0.02017543859649123,
+      "round_time": 0.0
+    },
+    {
+      "round": 1,
+      "loss": 0.4327237033843994,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "round_time": 3.1761882305145264
+    },
+    {
+      "round": 2,
+      "loss": 0.03659140353401502,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "round_time": 0.5248222351074219
+    },
+    {
+      "round": 3,
+      "loss": 0.008876853870848815,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "round_time": 0.4992341995239258
+    },
+    {
+      "round": 4,
+      "loss": 0.004842461391041677,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "round_time": 0.47242188453674316
+    },
+    {
+      "round": 5,
+      "loss": 0.003459663816417257,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "round_time": 0.48537206649780273
+    }
+  ],
+  "final_metrics": {
+    "round": 5,
+    "loss": 0.003459663816417257,
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "round_time": 0.48537206649780273
+  },
+  "total_time": 5.651763677597046,
+  "device": "cuda"
+}

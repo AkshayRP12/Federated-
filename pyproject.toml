@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flaas"
+version = "0.1.0"
+description = "Domain-Aware Federated Learning Configuration Recommender"
+authors = [{ name = "FLaaS Team" }]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.6.0",
+    "torchvision>=0.21.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "scikit-learn>=1.3.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "opacus>=1.4.0",
+    "pytest>=8.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "streamlit>=1.30.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["flaas*"]

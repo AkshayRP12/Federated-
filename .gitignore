@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyTorch / CUDA
+*.pt
+*.pth
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment variables
+.env
+
+# Testing / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Results & Cache (raw bulky run traces if uncommitted)
+data_cache/
+*.parquet.tmp
+
+# IDE
+.vscode/
+.idea/
