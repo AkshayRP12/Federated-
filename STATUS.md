@@ -1,7 +1,7 @@
 # FLaaS Project Status
 
 ## Overall Status
-- **Current Stage**: Stage 1 Completed (Simulator Core)
+- **Current Stage**: Stage 1 Validated on Real MNIST (Simulator Core & Mathematical Equivalences)
 - **Next Stage**: Stage 2 (Attacks, Privacy, Compression)
 - **Active Hardware Acceleration**: CUDA Enabled (`torch 2.6.0+cu124`, NVIDIA GeForce RTX 3050 Laptop GPU, 4GB VRAM)
 - **Accountant Dependency**: `opacus 1.6.0` (pinned and verified for RDP accounting)
@@ -12,7 +12,7 @@
 
 | Stage | Name | Status | Acceptance Checks |
 |---|---|---|---|
-| **Stage 1** | **Simulator Core** | **COMPLETED** | **12/12 unit tests PASSED**. Krum rejects outlier, TrimmedMean matches NumPy, CoordinateMedian matches NumPy, FedAvg converges on synthetic MNIST from 7.67% to 100.00% (Loss 2.3043 -> 0.0035). |
+| **Stage 1** | **Simulator Core** | **COMPLETED & AUDITED** | **15/15 unit tests PASSED**. Krum rejects outlier, TrimmedMean matches NumPy, CoordinateMedian matches NumPy, Mathematical equivalences verified (FedProx mu=0 == FedAvg, SCAFFOLD c=0 == FedAvg, FedNova equal steps == FedAvg). Real MNIST 30-round benchmarks executed across 10 clients: IID reaches 99.10%, Dirichlet alpha=0.1 reaches 98.23% with slower and noisier trajectory. |
 | **Stage 2** | Attacks, Privacy, Compression | PENDING | To implement: label_flip, sign_flip, gaussian_noise, scaled_update; clip_noise, Opacus RDP wrapper, secure_agg; topk, qsgd, sparse_ternary. |
 | **Stage 3** | Domain Adapters & Profiles | PENDING | MedMNIST, Credit Card Fraud (real/synthetic fallback), UCI HAR, EMNIST/FashionMNIST, GTSRB. Freeze profiles (`kb-v1`). |
 | **Stage 4** | Experiment Grid | PENDING | Fractional factorial/Latin-hypercube under `--budget`, SQLite + Parquet store, 3 seeds. |
@@ -24,24 +24,25 @@
 
 ---
 
-## Stage 1 Verification Details
-- **Client Algorithms**: `FedAvgClient`, `FedProxClient`, `SCAFFOLDClient`, `FedNovaClient` (`flaas/fl/client_algos.py`).
-- **Server Rules**: `FedAvgMean`, `TrimmedMean`, `CoordinateMedian`, `Krum` & `MultiKrum`, `Bulyan` (`flaas/fl/server_rules.py`).
-- **Server Optimizers**: `ServerSGD`, `ServerAdam` (`flaas/fl/server_optimizers.py`).
-- **Device Support**: `flaas/fl/device.py` provides CUDA -> MPS -> CPU fallback with aggressive VRAM clearance (`clear_device_memory()`) to prevent OOM on 4GB GPUs.
-- **Test Suite Results**:
-  - `tests/test_stage1_aggregators.py`: 5 passed (Krum outlier rejection, TrimmedMean vs NumPy ref, CoordinateMedian vs NumPy ref, FedAvg weighted/unweighted, Bulyan).
-  - `tests/test_stage1_clients.py`: 4 passed (FedAvg, FedProx, SCAFFOLD, FedNova step and delta generation).
-  - `tests/test_stage1_optimizers.py`: 2 passed (ServerSGD momentum, ServerAdam moment tracking).
-  - `tests/test_stage1_convergence.py`: 1 passed (FedAvg 5-round convergence on synthetic MNIST).
-- **Benchmark Run Output**: Saved to `results/stage1_fedavg_curve.json`.
+## Stage 1 Audit & Equivalence Verification
+1. **Dataset Transparency**:
+   - Initial demo used synthetic data with template hotspots, causing instant 100% accuracy.
+   - Replaced with **Official torchvision MNIST** (60,000 train images, 10,000 disjoint test images).
+   - Saved full 30-round run traces with `dataset_source: "real"`.
+2. **Mathematical Equivalences** (`tests/test_stage1_equivalences.py`):
+   - `test_fedprox_mu_zero_equals_fedavg`: Verified $\mu=0$ matches FedAvg exactly ($\Delta_{\text{diff}} < 10^{-6}$).
+   - `test_scaffold_zero_control_variates_equals_fedavg`: Verified round 1 with $c=0$ matches FedAvg exactly ($\Delta_{\text{diff}} < 10^{-6}$).
+   - `test_fednova_equal_steps_equals_fedavg`: Verified FedNova with equal $\tau_i$ scales back to FedAvg exactly ($\Delta_{\text{diff}} < 10^{-6}$).
+3. **Real MNIST 30-Round Benchmarks** (`experiments/run_real_mnist_benchmark.py`):
+   - **IID (10 clients)**: Smooth convergence from 12.29% (untrained init) -> 95.51% (R1) -> 98.87% (R10) -> **99.10%** (R30, loss: 0.0263).
+   - **Non-IID Dirichlet $\alpha=0.1$ (10 clients)**: Realistic client drift: 12.29% (untrained init) -> 67.45% (R1) -> 95.47% (R10) -> **98.23%** (R30, loss: 0.0525, with observable inter-round fluctuations).
 
 ---
 
 ## Known Issues / Failing
-- None. All Stage 1 unit tests and convergence benchmarks pass with zero failures.
+- None. All 15 tests pass. Working tree clean.
 
 ---
 
-## Next Immediate Step
-- Await user review of Stage 1 acceptance checks before commencing Stage 2 (Attacks, Privacy, Compression).
+## Next Step
+- Await user approval to proceed to Stage 2 (Attacks, Privacy, Compression).
