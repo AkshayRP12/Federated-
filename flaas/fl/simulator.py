@@ -207,18 +207,21 @@ class FLSimulator:
                 round_uplink_bytes += client_wire_bytes
                 self.wire_meter.record_client_uplink(client_wire_bytes)
 
-                # 3. Differential privacy (clipping + calibrated noise)
+                # 3. Differential privacy: client-level clipping (and optional local noise)
                 if self.dp_clipper is not None:
-                    compressed_delta, _ = self.dp_clipper.apply(compressed_delta)
+                    if getattr(self.dp_clipper, "mode", "central") == "local":
+                        compressed_delta, _ = self.dp_clipper.apply(compressed_delta)
+                    else:
+                        compressed_delta, _ = self.dp_clipper.clip_only(compressed_delta)
 
                 processed_updates[cid] = compressed_delta
                 sample_counts.append(res.num_samples)
 
-            # 4. Secure aggregation simulation (pairwise masking)
+            # 4. Secure aggregation simulation (pairwise zero-sum masking)
             if self.secagg is not None:
                 processed_updates = self.secagg.mask_updates(processed_updates)
 
-            # 5. Privacy accounting step
+            # 5. Privacy accounting step (Client-Level DP: q = m / K)
             current_eps = 0.0
             if self.dp_accountant is not None and self.dp_clipper is not None:
                 sample_rate = len(selected_clients) / float(num_total_clients)
@@ -234,6 +237,17 @@ class FLSimulator:
                 updates=update_vectors,
                 weights=[float(s) for s in sample_counts],
             )
+
+            # Central Client-Level DP noise addition on the aggregated update
+            if (
+                self.dp_clipper is not None
+                and getattr(self.dp_clipper, "mode", "central") == "central"
+                and self.dp_clipper.noise_multiplier > 0.0
+            ):
+                aggregated_delta = self.dp_clipper.add_central_noise_to_average(
+                    aggregated_avg_delta=aggregated_delta,
+                    num_sampled_clients=len(selected_clients),
+                )
 
             # Update SCAFFOLD server control variate if clients provided delta_c
             scaffold_deltas = [

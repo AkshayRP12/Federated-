@@ -4,7 +4,7 @@
 - **Current Stage**: Stage 2 Completed & Audited (Attacks, Differential Privacy, Compression & Wire Measurement)
 - **Next Stage**: Stage 3 (Domain Adapters & Profiles)
 - **Active Hardware Acceleration**: CUDA Enabled (`torch 2.6.0+cu124`, NVIDIA GeForce RTX 3050 Laptop GPU, 4GB VRAM)
-- **Accountant Dependency**: `opacus 1.6.0` (pinned and verified for RDP accounting)
+- **Accountant Dependencies**: `opacus 1.6.0` (pinned) and `dp-accounting 0.6.0` (Google independent cross-check)
 
 ---
 
@@ -13,7 +13,7 @@
 | Stage | Name | Status | Acceptance Checks |
 |---|---|---|---|
 | **Stage 1** | **Simulator Core** | **COMPLETED & AUDITED** | **18/18 Stage 1 unit tests PASSED**. Krum rejects outlier, TrimmedMean matches NumPy, CoordinateMedian matches NumPy, Mathematical equivalences verified (FedProx $\mu=0$ == FedAvg, SCAFFOLD $c=0$ == FedAvg, FedNova equal steps == FedAvg, TrimmedMean $\beta=0$ == Mean, MultiKrum $m=n$ == Mean). Real MNIST 30-round benchmarks executed across 10 clients (IID: 99.10%, non-IID $\alpha=0.1$: 98.23%). |
-| **Stage 2** | **Attacks, Privacy, Compression** | **COMPLETED & AUDITED** | **29/29 total unit tests PASSED**. 20% sign-flip attackers evaluated across 3 seeds (`[42, 100, 2026]`): Plain Mean degrades to 94.02% (loss 0.2091), Krum recovers to 97.72%, TrimmedMean recovers to 98.20%. Opacus RDP accountant verified against literature benchmarks with 0.00% relative difference. Actual uplink wire bytes and compression ratios measured across 3 seeds: Uncompressed FP32 (4.14 MB/round, 98.31%), TopK 10% (828 KB/round, 5.0x, 98.12%), QSGD $s=8$ (647 KB/round, 6.4x, 98.26%), Sparse Ternary (259 KB/round, 16.0x, 97.37%). |
+| **Stage 2** | **Attacks, Privacy, Compression** | **COMPLETED & AUDITED** | **31/31 total unit tests PASSED**. 20% sign-flip attackers evaluated across 3 seeds (`[42, 100, 2026]`): Plain Mean degrades to 94.02% (loss 0.2091), Krum recovers to 97.72%, TrimmedMean recovers to 98.20%. Opacus RDP accountant independently cross-checked against Google's `dp_accounting` library with relative difference < 0.04%. Client-level DP formalized ($q = m / K$, sensitivity $C$ on the sum, $(C \cdot \sigma)/m$ noise on average update). Actual uplink wire bytes and compression ratios measured across 3 seeds: Uncompressed FP32 (4.14 MB/round, 98.31%), TopK 10% (828 KB/round, 5.0x, 98.12%), QSGD $s=8$ (647 KB/round, 6.4x, 98.26%), Sparse Ternary (259 KB/round, 16.0x, 97.37%). |
 | **Stage 3** | Domain Adapters & Profiles | PENDING | MedMNIST, Credit Card Fraud (real/synthetic fallback), UCI HAR, EMNIST/FashionMNIST, GTSRB. Freeze profiles (`kb-v1`). |
 | **Stage 4** | Experiment Grid | PENDING | Fractional factorial/Latin-hypercube under `--budget`, SQLite + Parquet store, 3 seeds. |
 | **Stage 5** | Recommender | PENDING | Feasibility filter, multi-criteria scoring, Pareto front, rationale generator, domain-agnostic baseline. |
@@ -34,15 +34,16 @@
 - **Attacked Trimmed Mean ($\beta=0.2$)**: Recovers to **98.20% ± 0.17%** | Final Loss: 0.0563 ± 0.0023
 - **Saved Artifacts**: `results/stage2_robustness_signflip_3seeds.png`, `results/stage2_robustness_signflip_3seeds.json`.
 
-### 2. Differential Privacy RDP Verification Against Literature
-- **Accountant**: Opacus verified Rényi Differential Privacy (RDP).
-- **Comparison Table**:
-| Steps | Sample Rate $q$ | Noise Multiplier $\sigma$ | Target $\delta$ | Computed $\varepsilon$ | Ref $\varepsilon$ | Rel Diff (%) | Citation |
+### 2. Differential Privacy: Independent Cross-Check (Opacus vs. Google `dp_accounting`)
+- **Methodology**: Evaluates Client-Level DP where universe $\mathcal{U} = K$ clients, $m$ sampled clients ($q = m / K$), sensitivity $\Delta_2 = C$.
+- **Side-by-Side Comparison**:
+| Steps | Sample Rate $q$ | Noise Multiplier $\sigma$ | Target $\delta$ | Opacus RDP $\varepsilon$ | Google `dp_acc` $\varepsilon$ | Rel Diff (%) | Citation / Setting |
 |---|---|---|---|---|---|---|---|
-| 10 | 0.01 | 1.0 | $10^{-5}$ | 1.0353 | 1.0353 | **0.00%** | Opacus RDP Subsampled Gaussian (Mironov 2017) |
-| 100 | 0.01 | 1.0 | $10^{-5}$ | 1.2141 | 1.2141 | **0.00%** | Opacus RDP Benchmark (Mironov 2017) |
-| 100 | 0.05 | 1.5 | $10^{-5}$ | 1.8789 | 1.8789 | **0.00%** | Opacus DP-SGD Tutorials |
-| 50 | 0.10 | 2.0 | $10^{-5}$ | 1.8440 | 1.8440 | **0.00%** | Opacus FL DP Grid |
+| 10 | 0.01 | 1.0 | $10^{-5}$ | 1.0353 | 1.0353 | **0.0000%** | Mironov (CSF 2017) Analytical |
+| 100 | 0.01 | 1.0 | $10^{-5}$ | 1.2141 | 1.2141 | **0.0000%** | Mironov (CSF 2017) / Opacus Benchmark |
+| 100 | 0.05 | 1.5 | $10^{-5}$ | 1.8789 | 1.8789 | **0.0000%** | Abadi / Opacus Subsampled Gaussian |
+| 50 | 0.10 | 2.0 | $10^{-5}$ | 1.8440 | 1.8440 | **0.0000%** | Client-Level FL Cohort ($q=0.10$, 50 rds) |
+| 30 | 0.20 | 1.5 | $10^{-5}$ | 4.5785 | 4.5803 | **0.0391%** | Cross-Silo FL (10 clients, 2 sampled/rd) |
 
 ### 3. Compression & Wire Accounting (Real MNIST across 3 Seeds)
 - **Setup**: 10 clients, 8 communication rounds, seeds `[42, 100, 2026]`, tracking uplink wire payload bytes per round.
@@ -58,7 +59,7 @@
 ---
 
 ## Known Issues / Failing
-- None. All 29 unit tests pass. Working tree clean.
+- None. All 31 unit tests pass. Working tree clean.
 
 ---
 

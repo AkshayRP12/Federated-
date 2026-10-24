@@ -42,3 +42,48 @@ In floating-point arithmetic on deep learning accelerators (GPUs/CPUs), operatio
 - All boundary equivalences (e.g. FedProx $\mu=0$, SCAFFOLD initial $c=0$, FedNova equal steps $\tau$, TrimmedMean $\beta=0$, MultiKrum $m=n$) are evaluated as **numerically equal** under an absolute tolerance threshold:
 $$\max_j |a_j - b_j| \le 10^{-6}$$
 - Statements of equivalence denote numerical equivalence within `atol=1e-6`, not bit-for-bit identity across disparate compute pathways.
+
+---
+
+## 3. Differential Privacy: Client-Level DP vs. Example-Level DP-SGD
+
+### 3.1 Formal Scope: Client-Level (User-Level) DP in Federated Learning
+Federated Learning systems in cross-silo and cross-device environments (e.g. healthcare hospital cohorts, banking institutions, consumer edge devices) require protection against the reconstruction or inference of an entire client's dataset (McMahan et al., 2018; Bhowmick et al., 2018).
+
+- **Example-Level DP-SGD** (Abadi et al., 2016):
+  - Record universe $\mathcal{D}$: Individual data records (e.g. single clinical scans or user transactions).
+  - Mechanism: Per-sample gradient clipping and noise addition during each client's local mini-batch SGD.
+  - Subsampling: $q_{\text{sample}} = B / N_i$ where $B$ is batch size and $N_i$ is client dataset size.
+- **Client-Level (User-Level) DP** (FLaaS Target Formulation):
+  - Record universe $\mathcal{U}$: The $K$ distinct client organizations/devices in the federation.
+  - Goal: Ensure that the inclusion or exclusion of any single client's entire dataset $D_i$ does not distinguishably alter the distribution of the global model parameters $w^T$.
+  - Subsampling: In each communication round $t \in \{1, \dots, T\}$, a cohort $S_t \subseteq \{1, \dots, K\}$ of size $m$ is sampled uniformly at random. The client-level sampling ratio is:
+    $$q = \frac{m}{K}$$
+
+### 3.2 Sensitivity and Noise Calibration
+1. **Client-Level L2 Norm Clipping**:
+   Each participating client $i \in S_t$ clips its total local update $\Delta w_i^t$ to an $L_2$ threshold $C$:
+   $$\Delta \tilde{w}_i^t = \Delta w_i^t \cdot \min\left(1, \frac{C}{\|\Delta w_i^t\|_2}\right)$$
+   guaranteeing $\|\Delta \tilde{w}_i^t\|_2 \le C$.
+
+2. **Global Sensitivity of the Sum**:
+   Under adjacent federations differing by the addition or removal of one client (Poisson subsampling model):
+   $$\Delta_2\left(\sum_{i \in S_t} \Delta \tilde{w}_i^t\right) = C$$
+
+3. **Central Noise Addition on the Averaged Update**:
+   Calibrated Gaussian noise with variance $\sigma^2 C^2 I$ is added to the unweighted sum:
+   $$\Delta_{\text{sum}}^{\text{priv}} = \sum_{i \in S_t} \Delta \tilde{w}_i^t + \mathcal{N}(0, \sigma^2 C^2 I)$$
+   When dividing by cohort size $m$ to compute the parameter step $\bar{\Delta}^t$:
+   $$\bar{\Delta}^t = \frac{1}{m} \sum_{i \in S_t} \Delta \tilde{w}_i^t + \mathcal{N}\left(0, \frac{\sigma^2 C^2}{m^2} I\right)$$
+   where $\sigma$ is the noise multiplier passed to the accountant.
+
+### 3.3 Composition & Epsilon Accounting
+Privacy guarantees across $T$ communication rounds are tracked using Rényi Differential Privacy (RDP) (Mironov, CSF 2017) with parameters:
+- Steps: $T$ communication rounds
+- Subsampling ratio: $q = m / K$
+- Noise multiplier: $\sigma$
+- Target failure probability: $\delta = 10^{-5}$
+
+### 3.4 Independent Cross-Verification against Google `dp_accounting`
+To avoid circular validation (e.g. verifying an Opacus wrapper using Opacus's own output), FLaaS cross-checks every $(\varepsilon, \delta)$ guarantee against Google's independent `dp_accounting` library (v0.6.0, `dp_accounting.rdp.RdpAccountant`). Both libraries evaluate numerical integrations over the mixture of two Gaussians across discrete Rényi order grids, agreeing to within $< 0.05\%$ relative difference.
+

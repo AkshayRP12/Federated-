@@ -187,32 +187,43 @@ def run_robustness_benchmark(train_dataset, test_dataset, seeds=[42, 100, 2026],
 
 def run_privacy_accounting_verification():
     """
-    Validates Opacus RDP accountant against known values from Opacus paper/docs.
+    Validates Opacus RDP accountant and cross-checks side-by-side with
+    Google's independent dp_accounting library across both literature benchmarks
+    and realistic Client-Level FL federations.
     """
-    print("\n" + "=" * 75)
-    print(" 2. DIFFERENTIAL PRIVACY: RDP Accountant Verification against Literature")
-    print("=" * 75)
+    print("\n" + "=" * 92)
+    print(" 2. DIFFERENTIAL PRIVACY: Literature Reference & Independent Google dp_accounting Cross-Check")
+    print("=" * 92)
 
     test_cases = [
-        {"steps": 10, "q": 0.01, "sigma": 1.0, "delta": 1e-5, "ref_eps": 1.0353, "cite": "Opacus RDP Subsampled Gaussian (Mironov 2017)"},
-        {"steps": 100, "q": 0.01, "sigma": 1.0, "delta": 1e-5, "ref_eps": 1.2141, "cite": "Opacus RDP Benchmark (Mironov 2017)"},
-        {"steps": 100, "q": 0.05, "sigma": 1.5, "delta": 1e-5, "ref_eps": 1.8789, "cite": "Opacus DP-SGD Tutorials"},
-        {"steps": 50, "q": 0.1, "sigma": 2.0, "delta": 1e-5, "ref_eps": 1.8440, "cite": "Opacus FL DP Grid"},
+        {"steps": 10, "q": 0.01, "sigma": 1.0, "delta": 1e-5, "cite": "Mironov (CSF 2017) Analytical"},
+        {"steps": 100, "q": 0.01, "sigma": 1.0, "delta": 1e-5, "cite": "Mironov (CSF 2017) / Opacus Benchmark"},
+        {"steps": 100, "q": 0.05, "sigma": 1.5, "delta": 1e-5, "cite": "Abadi / Opacus Subsampled Gaussian"},
+        {"steps": 50, "q": 0.10, "sigma": 2.0, "delta": 1e-5, "cite": "Client-Level FL Cohort (q=0.1, 50 rds)"},
+        {"steps": 30, "q": 0.20, "sigma": 1.5, "delta": 1e-5, "cite": "Cross-Silo FL (10 clients, 2 sampled/rd)"},
     ]
 
-    print(f"{'Steps':<8}{'q':<8}{'Sigma':<8}{'Delta':<10}{'Computed Eps':<16}{'Ref Eps':<12}{'Rel Diff (%)':<14}{'Citation'}")
-    print("-" * 88)
+    print(f"{'Steps':<8}{'q':<8}{'Sigma':<8}{'Delta':<10}{'Opacus RDP':<15}{'Google dp_acc':<16}{'Rel Diff (%)':<14}{'Citation / Setting'}")
+    print("-" * 92)
 
     for case in test_cases:
-        acc = VerifiedRDPAccountant(target_delta=case["delta"])
-        for _ in range(case["steps"]):
-            acc.step(noise_multiplier=case["sigma"], sample_rate=case["q"])
-        computed_eps = acc.get_epsilon()
-        diff_pct = abs(computed_eps - case["ref_eps"]) / case["ref_eps"] * 100.0
-        print(f"{case['steps']:<8}{case['q']:<8}{case['sigma']:<8}{case['delta']:<10.1e}{computed_eps:<16.4f}{case['ref_eps']:<12.4f}{diff_pct:<14.2f}{case['cite']}")
+        res = VerifiedRDPAccountant.cross_check(
+            steps=case["steps"],
+            noise_multiplier=case["sigma"],
+            sample_rate=case["q"],
+            target_delta=case["delta"],
+        )
+        print(
+            f"{case['steps']:<8}{case['q']:<8}{case['sigma']:<8}{case['delta']:<10.1e}"
+            f"{res['eps_opacus']:<15.4f}{res['eps_google']:<16.4f}{res['rel_diff_pct']:<14.4f}{case['cite']}"
+        )
+        assert res["is_concordant"], f"Discrepancy too high for case {case}"
 
-        # Ensure close match (< 10% relative tolerance due to discrete Renyi alpha grid)
-        assert diff_pct < 10.0, f"Accountant deviation too high for case {case}"
+    print("-" * 92)
+    print("Client-Level DP Guarantee: Record universe = K total clients. In each round, m clients")
+    print("are sampled (q = m / K), updates are clipped to L2 norm threshold C, and central Gaussian")
+    print("noise with std = (sigma * C) / m is added to the averaged global update.")
+    print("-" * 92)
 
 
 def run_compression_benchmark(train_dataset, test_dataset, seeds=[42, 100, 2026], num_rounds=8):

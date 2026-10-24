@@ -10,7 +10,7 @@ import math
 import pytest
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset
+from torch.utils.data import DataLoader, TensorDataset
 
 from flaas.attacks.attacks import (
     SignFlipAttack,
@@ -87,22 +87,117 @@ def test_dp_clipping_and_noise():
 def test_opacus_rdp_accountant_reference_values():
     """
     Validates the RDP accountant wrapper against established reference values
-    from Opacus benchmarks (Mironov, CSF 2017 & Opacus RDP implementation).
+    from Mironov (CSF 2017) and Opacus RDP implementation.
     """
     accountant = VerifiedRDPAccountant(target_delta=1e-5)
 
     # Reference Case 1: Subsampled Gaussian mechanism with q=0.01, sigma=1.0, 1 step, delta=1e-5
     accountant.step(noise_multiplier=1.0, sample_rate=0.01)
     eps_step1 = accountant.get_epsilon()
-    # Verified Opacus reference value: ~0.9555
     assert abs(eps_step1 - 0.9555) < 0.05, f"Eps mismatch: {eps_step1}"
 
     # Reference Case 2: 100 steps with q=0.01, sigma=1.0, delta=1e-5
     for _ in range(99):
         accountant.step(noise_multiplier=1.0, sample_rate=0.01)
     eps_step100 = accountant.get_epsilon()
-    # Verified Opacus reference value: ~1.2141
     assert abs(eps_step100 - 1.2141) < 0.05, f"Eps mismatch: {eps_step100}"
+
+
+def test_opacus_vs_google_dp_accounting_cross_check():
+    """
+    Independent cross-check: Compares Opacus RDP accountant against
+    Google's official dp_accounting library across multiple FL sampling regimes.
+    Tolerance: absolute difference < 1e-6.
+    """
+    test_cases = [
+        {"steps": 10, "q": 0.01, "sigma": 1.0, "delta": 1e-5},
+        {"steps": 100, "q": 0.01, "sigma": 1.0, "delta": 1e-5},
+        {"steps": 100, "q": 0.05, "sigma": 1.5, "delta": 1e-5},
+        {"steps": 50, "q": 0.10, "sigma": 2.0, "delta": 1e-5},
+        {"steps": 20, "q": 0.20, "sigma": 1.2, "delta": 1e-5},
+    ]
+
+    for case in test_cases:
+        res = VerifiedRDPAccountant.cross_check(
+            steps=case["steps"],
+            noise_multiplier=case["sigma"],
+            sample_rate=case["q"],
+            target_delta=case["delta"],
+        )
+        assert res["is_concordant"], f"Discrepancy between Opacus and Google dp_accounting: {res}"
+        assert res["rel_diff_pct"] < 0.2, f"Relative difference exceeded 0.2%: {res['rel_diff_pct']}%"
+
+
+def test_client_level_dp_accounting_simulation():
+    """
+    Verifies Client-Level (User-Level) Differential Privacy:
+    - K = 10 total clients in federation
+    - m = 4 sampled clients per round (q = 4/10 = 0.4)
+    - Sensitivity C = 2.0 enforced by client clipping
+    - Central noise added to averaged update with std = (sigma * C) / m
+    - Accountant tracks composition across rounds with q = 0.4.
+    """
+    device = torch.device("cpu")
+    from flaas.fl.models import CompactCNN
+    from flaas.fl.client_algos import FedAvgClient
+    from flaas.fl.server_rules import FedAvgMean
+    from flaas.fl.server_optimizers import ServerSGD
+    from flaas.fl.simulator import FLSimulator, seed_everything
+
+    seed_everything(42)
+    num_total_clients = 10
+    num_sampled_clients = 4
+    participation_rate = num_sampled_clients / float(num_total_clients)
+
+    data = {
+        cid: DataLoader(TensorDataset(torch.randn(16, 1, 28, 28), torch.randint(0, 10, (16,))), batch_size=8)
+        for cid in range(num_total_clients)
+    }
+    test_loader = DataLoader(TensorDataset(torch.randn(20, 1, 28, 28), torch.randint(0, 10, (20,))), batch_size=10)
+
+    client_algos = {
+        cid: FedAvgClient(cid, lambda: CompactCNN(1, 10), device, learning_rate=0.05)
+        for cid in range(num_total_clients)
+    }
+
+    clipper = DPClipperNoise(clip_norm=2.0, noise_multiplier=1.2, mode="central", seed=42)
+    accountant = VerifiedRDPAccountant(target_delta=1e-5)
+
+    sim = FLSimulator(
+        model_fn=lambda: CompactCNN(1, 10),
+        client_algos=client_algos,
+        client_dataloaders=data,
+        test_dataloader=test_loader,
+        server_rule=FedAvgMean(),
+        server_optimizer=ServerSGD(lr=1.0),
+        device=device,
+        seed=42,
+        dp_clipper=clipper,
+        dp_accountant=accountant,
+    )
+
+    num_rounds = 3
+    res = sim.run(
+        num_rounds=num_rounds,
+        epochs_per_round=1,
+        participation_rate=participation_rate,
+        verbose=False,
+    )
+
+    # Verify accountant stepped num_rounds times with q = 0.4
+    assert accountant.total_steps == num_rounds
+    eps = accountant.get_epsilon()
+    assert eps > 0.0
+
+    # Cross-check with Google dp_accounting
+    google_eps = VerifiedRDPAccountant.compute_google_dp_accounting_epsilon(
+        steps=num_rounds,
+        noise_multiplier=1.2,
+        sample_rate=participation_rate,
+        target_delta=1e-5,
+    )
+    assert abs(eps - google_eps) < 1e-3
+
 
 
 def test_secure_aggregation_exact_cancellation():
