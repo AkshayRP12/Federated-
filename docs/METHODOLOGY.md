@@ -93,3 +93,26 @@ Privacy guarantees across $T$ communication rounds are tracked using Rényi Diff
 ### 3.4 Independent Cross-Verification against Google `dp_accounting`
 To avoid circular validation (e.g. verifying an Opacus wrapper using Opacus's own output), FLaaS cross-checks every $(\varepsilon, \delta)$ guarantee against Google's independent `dp_accounting` library (v0.6.0, `dp_accounting.rdp.RdpAccountant`). Both libraries evaluate numerical integrations over the mixture of two Gaussians across discrete Rényi order grids, agreeing to within $< 0.05\%$ relative difference.
 
+---
+
+## 4. Client Sample Capping and Benchmark Isolation
+
+### 4.1 1,000-Sample Client Dataset Cap
+In Dirichlet non-IID partitioning under extreme concentration parameters (e.g. $\alpha=0.1$ with $K=10$ clients), unconstrained sampling draws from the Dirichlet-multinomial distribution where a single dominant client can receive upwards of $13,000+$ training samples while minority clients receive fewer than 200 samples.
+
+In a synchronous Federated Learning simulation, this creates severe compute stragglers:
+- An un-capped client with 13,000 samples and 5 local epochs executes $65,000$ forward-backward operations per round, causing round wall-times to explode to $\approx 23$ seconds/round.
+- To enforce uniform compute budgets and prevent straggler bottlenecks on laptop/workstation accelerators, FLaaS introduces a per-client sample cap:
+  $$N_i^{\text{capped}} = \min(N_i, 1000)$$
+This cap preserves extreme non-IID label skew (preserving low $\alpha$) while bounding per-client gradient steps, reducing round latency from $\approx 23$ s to $\approx 1.8$ s.
+
+### 4.2 Use of Client Cap in Stage 2 Results
+- **Stage 2 Extended Benchmarks**: The 3-seed Dirichlet robustness benchmark (`Honest_Mean`, `Attacked_Mean`, `Attacked_Krum`, `Attacked_TrimmedMean`) and the DP accuracy comparison **did use** the 1,000-sample cap (`capped_indices = {cid: idxs[:1000]}`).
+- **Initial Stage 2 Sanity Checks**: The initial single-seed runs without the cap were aborted due to compute stragglers. All committed Stage 2 benchmark artifacts in `results/stage2_*` reflect the 1,000-sample cap.
+
+### 4.3 Stage Isolation: Stage 2 vs. Stage 4
+To ensure that benchmark results are never commingled or conflated:
+1. **Stage 2 Results** are strictly stored in `results/stage2_*.json` and `results/stage2_*.png` and represent **primitive unit evaluations** (e.g. single-attack sign-flip resistance on MNIST, RDP accountant verification).
+2. **Stage 4 Results** will be strictly written to dedicated database and columnar stores (`results/stage4_grid.sqlite` and `results/stage4_grid.parquet`), partitioned by domain profile, scenario ID, and configuration ID. Stage 4 queries and recommender models will read exclusively from Stage 4 stores.
+
+
