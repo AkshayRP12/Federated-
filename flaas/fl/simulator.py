@@ -123,6 +123,8 @@ class FLSimulator:
         num_rounds: int = 5,
         epochs_per_round: int = 1,
         participation_rate: float = 1.0,
+        sampling_strategy: str = "fixed",  # "fixed" (m of K) or "poisson" (independent Bernoulli(q))
+        evaluate_every_k_rounds: int = 1,
         compute_auprc: bool = False,
         criterion: Optional[nn.Module] = None,
         verbose: bool = True,
@@ -130,6 +132,7 @@ class FLSimulator:
     ) -> Dict[str, Any]:
         """
         Executes FL simulation for num_rounds.
+        Supports both fixed-cohort sampling and Poisson client sampling.
         Returns metrics history and cumulative wire meter stats.
         """
         eval_criterion = criterion or nn.CrossEntropyLoss()
@@ -163,15 +166,20 @@ class FLSimulator:
                     f"F1: {r0_metrics['macro_f1']:.4f}"
                 )
 
+        last_eval_metrics = r0_metrics if evaluate_initial else {"loss": 0.0, "accuracy": 0.0, "macro_f1": 0.0}
         global_model_bytes = state_dict_to_vector(self.global_state_dict).numel() * 4
 
         for round_idx in range(1, num_rounds + 1):
             round_start = time.time()
             round_uplink_bytes = 0
 
-            # Determine participating clients
+            # Determine participating clients: fixed cohort vs. Poisson sampling
             if participation_rate >= 1.0:
                 selected_clients = client_ids
+            elif sampling_strategy == "poisson":
+                selected_clients = [cid for cid in client_ids if random.random() < participation_rate]
+                if not selected_clients:
+                    selected_clients = [random.choice(client_ids)]
             else:
                 m = max(1, int(participation_rate * num_total_clients))
                 selected_clients = random.sample(client_ids, m)
@@ -221,10 +229,10 @@ class FLSimulator:
             if self.secagg is not None:
                 processed_updates = self.secagg.mask_updates(processed_updates)
 
-            # 5. Privacy accounting step (Client-Level DP: q = m / K)
+            # 5. Privacy accounting step (Client-Level DP: q = m / K or Poisson q)
             current_eps = 0.0
             if self.dp_accountant is not None and self.dp_clipper is not None:
-                sample_rate = len(selected_clients) / float(num_total_clients)
+                sample_rate = participation_rate if sampling_strategy == "poisson" else len(selected_clients) / float(num_total_clients)
                 self.dp_accountant.step(
                     noise_multiplier=self.dp_clipper.noise_multiplier,
                     sample_rate=sample_rate,
@@ -267,8 +275,13 @@ class FLSimulator:
             updated_w_vec = self.server_optimizer.step(current_w_vec, aggregated_delta)
             self.global_state_dict = vector_to_state_dict(updated_w_vec, self.global_state_dict)
 
-            # Global evaluation
-            eval_metrics = self.evaluate_global(eval_criterion, compute_auprc)
+            # Global evaluation (evaluates every k rounds or on final round)
+            should_eval = (round_idx % evaluate_every_k_rounds == 0) or (round_idx == num_rounds)
+            if should_eval:
+                eval_metrics = self.evaluate_global(eval_criterion, compute_auprc)
+                last_eval_metrics = eval_metrics
+            else:
+                eval_metrics = last_eval_metrics
 
             round_duration = time.time() - round_start
             round_record = {

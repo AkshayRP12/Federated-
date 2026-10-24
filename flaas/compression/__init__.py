@@ -7,6 +7,7 @@ from flaas.compression.compressors import (
     IdentityCompressor,
     TopKCompressor,
     QSGDCompressor,
+    ThresholdedTernaryCompressor,
     SparseTernaryCompressor,
 )
 from flaas.compression.wire_meter import calculate_raw_bytes, RoundWireMeter
@@ -16,6 +17,7 @@ __all__ = [
     "IdentityCompressor",
     "TopKCompressor",
     "QSGDCompressor",
+    "ThresholdedTernaryCompressor",
     "SparseTernaryCompressor",
     "calculate_raw_bytes",
     "RoundWireMeter",

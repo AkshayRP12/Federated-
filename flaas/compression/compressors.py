@@ -113,12 +113,21 @@ class QSGDCompressor(BaseCompressor):
         return dequantized.reshape(tensor.shape), wire_bytes
 
 
-class SparseTernaryCompressor(BaseCompressor):
+class ThresholdedTernaryCompressor(BaseCompressor):
     """
-    Sparse Ternary Quantization:
-    Coordinates with magnitude above threshold are quantized to {-1, +1} * scale,
-    while smaller coordinates are zeroed out.
-    Wire format: scale (float32, 4 bytes) + ternary symbols (2 bits per coordinate).
+    Thresholded Ternary Quantization (also known as Sparse Ternary):
+    Coordinates with magnitude above threshold tau are quantized to {-1, +1} * scale,
+    while coordinates below tau are set to 0.
+
+    Exact Wire Encoding & 16x Compression Ratio Derivation:
+    - Target discrete states per coordinate: {-scale, 0, +scale} (cardinality = 3).
+    - Fixed-width binary symbol representation: ceil(log2(3)) = 2 bits per coordinate
+      (e.g. '00' = 0, '01' = +scale, '10' = -scale).
+    - Baseline uncompressed representation: standard IEEE 754 float32 = 32 bits (4 bytes).
+    - Compression ratio:
+        Ratio = (32 bits / coord) / (2 bits / coord) = 16.0x
+    - Exact payload calculation:
+        wire_bytes = 4 bytes (float32 scale header) + ceil((d * 2) / 8) bytes.
     """
 
     def __init__(self, threshold_factor: float = 1.0):
@@ -144,6 +153,10 @@ class SparseTernaryCompressor(BaseCompressor):
         ternary = torch.zeros_like(flat)
         ternary[mask] = torch.sign(selected_elements) * scale
 
-        # Wire bytes: 4 bytes scale + 2 bits per coordinate for ternary {-1, 0, +1}
+        # Wire bytes: 4 bytes scale header + 2 bits per coordinate for ternary {-scale, 0, +scale}
         wire_bytes = 4 + math.ceil((d * 2) / 8)
         return ternary.reshape(tensor.shape), wire_bytes
+
+
+# Alias for backwards compatibility
+SparseTernaryCompressor = ThresholdedTernaryCompressor

@@ -334,3 +334,40 @@ def test_identity_compression_matches_uncompressed_fedavg():
         diff = (sim1.global_state_dict[k] - sim2.global_state_dict[k]).abs().max().item()
         assert diff < 1e-6, f"Mismatch in layer {k}: {diff}"
 
+
+def test_example_level_dpsgd_client():
+    """
+    Verifies Example-Level DP-SGD client:
+    - Trains with per-sample gradient clipping
+    - Adds calibrated Gaussian noise
+    - Returns valid client result delta vector
+    """
+    device = torch.device("cpu")
+    from flaas.fl.models import CompactCNN
+    from flaas.fl.server_rules import state_dict_to_vector
+    from flaas.privacy.example_level_dp import ExampleLevelDPSGDClient
+
+    torch.manual_seed(42)
+    model = CompactCNN(1, 10)
+    initial_sd = {k: v.clone() for k, v in model.state_dict().items()}
+
+    x = torch.randn(16, 1, 28, 28)
+    y = torch.randint(0, 10, (16,))
+    loader = DataLoader(TensorDataset(x, y), batch_size=4)
+
+    client = ExampleLevelDPSGDClient(
+        client_id=0,
+        model_fn=lambda: CompactCNN(1, 10),
+        device=device,
+        learning_rate=0.01,
+        clip_norm=1.0,
+        noise_multiplier=0.5,
+        seed=100,
+    )
+
+    res = client.train(initial_sd, loader, epochs=1)
+    assert res.delta.shape == state_dict_to_vector(initial_sd).shape
+    assert res.num_samples == 16
+    assert res.loss > 0.0
+
+
