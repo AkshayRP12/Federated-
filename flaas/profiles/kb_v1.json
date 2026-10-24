@@ -1,0 +1,128 @@
+{
+  "healthcare": {
+    "domain_id": "healthcare",
+    "name": "Healthcare Multi-Hospital Silos (MedMNIST)",
+    "description": "Cross-silo collaborative diagnostics across hospital consortiums. Strict privacy compliance required.",
+    "data_modality": "vision",
+    "num_classes": 8,
+    "typical_num_clients": 10,
+    "participation_rate": 1.0,
+    "heterogeneity_alpha": 0.3,
+    "privacy_budget_epsilon": 4.0,
+    "privacy_delta": 1e-05,
+    "bandwidth_constraint": "moderate",
+    "recommended_compressor": "identity",
+    "attack_risk": "low",
+    "primary_metric": "accuracy",
+    "candidate_algorithms": [
+      "FedAvg",
+      "FedProx",
+      "SCAFFOLD"
+    ],
+    "candidate_aggregators": [
+      "FedAvgMean",
+      "TrimmedMean"
+    ],
+    "target_accuracy": 85.0
+  },
+  "finance": {
+    "domain_id": "finance",
+    "name": "Financial Fraud Detection (Credit Card)",
+    "description": "Cross-bank collaborative fraud scoring with severe class imbalance and regulatory privacy requirements.",
+    "data_modality": "tabular",
+    "num_classes": 2,
+    "typical_num_clients": 10,
+    "participation_rate": 1.0,
+    "heterogeneity_alpha": 0.5,
+    "privacy_budget_epsilon": 8.0,
+    "privacy_delta": 1e-05,
+    "bandwidth_constraint": "moderate",
+    "recommended_compressor": "identity",
+    "attack_risk": "medium",
+    "primary_metric": "macro_f1",
+    "candidate_algorithms": [
+      "FedAvg",
+      "FedProx"
+    ],
+    "candidate_aggregators": [
+      "FedAvgMean",
+      "TrimmedMean"
+    ],
+    "target_accuracy": 80.0
+  },
+  "iot_edge": {
+    "domain_id": "iot_edge",
+    "name": "IoT Wearable Sensors (UCI HAR)",
+    "description": "Battery-constrained wearable sensor telemetry. Severe uplink communication limits.",
+    "data_modality": "sensor",
+    "num_classes": 6,
+    "typical_num_clients": 20,
+    "participation_rate": 0.5,
+    "heterogeneity_alpha": 0.5,
+    "privacy_budget_epsilon": 8.0,
+    "privacy_delta": 1e-05,
+    "bandwidth_constraint": "severe",
+    "recommended_compressor": "ternary_2bit",
+    "attack_risk": "low",
+    "primary_metric": "accuracy",
+    "candidate_algorithms": [
+      "FedAvg",
+      "FedNova"
+    ],
+    "candidate_aggregators": [
+      "FedAvgMean"
+    ],
+    "target_accuracy": 88.0
+  },
+  "mobile_apps": {
+    "domain_id": "mobile_apps",
+    "name": "Mobile Edge Visual Categorization (Fashion/EMNIST)",
+    "description": "Cross-device consumer smartphone federation. Unreliable WiFi/cellular uplink and partial client participation.",
+    "data_modality": "vision",
+    "num_classes": 10,
+    "typical_num_clients": 50,
+    "participation_rate": 0.2,
+    "heterogeneity_alpha": 0.2,
+    "privacy_budget_epsilon": 8.0,
+    "privacy_delta": 1e-05,
+    "bandwidth_constraint": "severe",
+    "recommended_compressor": "ternary_2bit",
+    "attack_risk": "medium",
+    "primary_metric": "accuracy",
+    "candidate_algorithms": [
+      "FedAvg",
+      "FedProx"
+    ],
+    "candidate_aggregators": [
+      "FedAvgMean",
+      "TrimmedMean"
+    ],
+    "target_accuracy": 85.0
+  },
+  "autonomous_vehicles": {
+    "domain_id": "autonomous_vehicles",
+    "name": "Autonomous Vehicles Traffic Sign Fleet (GTSRB)",
+    "description": "Connected vehicle edge cameras exposed to adversarial sign-flip and sensor noise attacks.",
+    "data_modality": "vision",
+    "num_classes": 43,
+    "typical_num_clients": 10,
+    "participation_rate": 1.0,
+    "heterogeneity_alpha": 0.1,
+    "privacy_budget_epsilon": 8.0,
+    "privacy_delta": 1e-05,
+    "bandwidth_constraint": "moderate",
+    "recommended_compressor": "qsgd_8",
+    "attack_risk": "high",
+    "primary_metric": "accuracy",
+    "candidate_algorithms": [
+      "FedAvg",
+      "FedProx"
+    ],
+    "candidate_aggregators": [
+      "TrimmedMean",
+      "Krum",
+      "Bulyan"
+    ],
+    "target_accuracy": 82.0
+  }
+}

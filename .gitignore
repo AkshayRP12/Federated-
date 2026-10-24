@@ -39,6 +39,7 @@ wheels/
 htmlcov/
 
 # Results & Cache (raw bulky run traces if uncommitted)
+data/
 data_cache/
 *.parquet.tmp
 

@@ -1,0 +1,72 @@
+[
+  {
+    "mechanism": "Client_Level_DP",
+    "condition": "unconstrained",
+    "noise_std": "0.0000 (on avg delta)",
+    "acc_mean": 93.38666666666667,
+    "acc_std": 0.21853044537444521
+  },
+  {
+    "mechanism": "Client_Level_DP",
+    "condition": "clip_only_no_noise",
+    "noise_std": "0.0000 (on avg delta)",
+    "acc_mean": 93.39999999999999,
+    "acc_std": 0.22449944320643234
+  },
+  {
+    "mechanism": "Client_Level_DP",
+    "condition": "eps_8.0",
+    "noise_std": "0.1426 (on avg delta)",
+    "acc_mean": 15.756666666666666,
+    "acc_std": 3.6649359551778744
+  },
+  {
+    "mechanism": "Client_Level_DP",
+    "condition": "eps_4.0",
+    "noise_std": "0.2588 (on avg delta)",
+    "acc_mean": 10.646666666666667,
+    "acc_std": 1.7673394945196268
+  },
+  {
+    "mechanism": "Client_Level_DP",
+    "condition": "eps_1.0",
+    "noise_std": "0.9046 (on avg delta)",
+    "acc_mean": 9.8,
+    "acc_std": 0.0
+  },
+  {
+    "mechanism": "Example_Level_DPSGD",
+    "condition": "unconstrained",
+    "noise_std": "0.0000 (per batch)",
+    "acc_mean": 95.03333333333335,
+    "acc_std": 0.3492213560989026
+  },
+  {
+    "mechanism": "Example_Level_DPSGD",
+    "condition": "clip_only_no_noise",
+    "noise_std": "0.0000 (per batch)",
+    "acc_mean": 78.83666666666666,
+    "acc_std": 1.3295696881155106
+  },
+  {
+    "mechanism": "Example_Level_DPSGD",
+    "condition": "eps_8.0",
+    "noise_std": "0.0258 (per batch)",
+    "acc_mean": 72.03333333333333,
+    "acc_std": 1.906765731692165
+  },
+  {
+    "mechanism": "Example_Level_DPSGD",
+    "condition": "eps_4.0",
+    "noise_std": "0.0367 (per batch)",
+    "acc_mean": 64.99333333333333,
+    "acc_std": 2.317028748682721
+  },
+  {
+    "mechanism": "Example_Level_DPSGD",
+    "condition": "eps_1.0",
+    "noise_std": "0.0919 (per batch)",
+    "acc_mean": 32.49333333333333,
+    "acc_std": 4.843066062825169
+  }
+]

@@ -143,8 +143,6 @@ class ExampleLevelDPSGDClient:
         delta_vec = state_dict_to_vector(local_sd).to(self.device) - state_dict_to_vector(global_state_dict).to(self.device)
 
         del model
-        if self.device.type == "cuda":
-            torch.cuda.empty_cache()
 
         return ClientResult(
             client_id=self.client_id,

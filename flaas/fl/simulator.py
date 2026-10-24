@@ -101,21 +101,33 @@ class FLSimulator:
         self,
         criterion: nn.Module,
         compute_auprc: bool = False,
+        subset_size: Optional[int] = None,
+        use_amp: bool = False,
     ) -> Dict[str, float]:
-        """Evaluates current global model state on the test dataloader."""
+        """Evaluates current global model state on the test dataloader or subset."""
         eval_model = self.model_fn().to(self.device)
         eval_model.load_state_dict(
             {k: v.to(self.device) for k, v in self.global_state_dict.items()}
         )
+        eval_model.eval()
+
+        loader = self.test_dataloader
+        # If subset requested, evaluate on subset for speedup
+        if subset_size is not None and hasattr(self.test_dataloader, "dataset"):
+            ds = self.test_dataloader.dataset
+            if len(ds) > subset_size:
+                subset_indices = list(range(min(subset_size, len(ds))))
+                subset_ds = torch.utils.data.Subset(ds, subset_indices)
+                loader = DataLoader(subset_ds, batch_size=128, shuffle=False)
+
         metrics = evaluate_model(
             model=eval_model,
-            dataloader=self.test_dataloader,
+            dataloader=loader,
             criterion=criterion,
             device=self.device,
             compute_auprc=compute_auprc,
         )
         del eval_model
-        clear_device_memory()
         return metrics
 
     def run(
@@ -125,15 +137,18 @@ class FLSimulator:
         participation_rate: float = 1.0,
         sampling_strategy: str = "fixed",  # "fixed" (m of K) or "poisson" (independent Bernoulli(q))
         evaluate_every_k_rounds: int = 1,
+        eval_subset_size: Optional[int] = None,  # e.g. 2000 for fast intermediate evaluation
+        target_accuracy: Optional[float] = None,  # Early stopping threshold in percent (0-100)
+        use_amp: bool = False,
         compute_auprc: bool = False,
         criterion: Optional[nn.Module] = None,
         verbose: bool = True,
         evaluate_initial: bool = True,
     ) -> Dict[str, Any]:
         """
-        Executes FL simulation for num_rounds.
-        Supports both fixed-cohort sampling and Poisson client sampling.
-        Returns metrics history and cumulative wire meter stats.
+        Executes FL simulation for num_rounds with GPU optimizations.
+        Supports fixed vs. Poisson sampling, AMP, intermediate subset evaluation,
+        early stopping at target_accuracy, and periodic VRAM management.
         """
         eval_criterion = criterion or nn.CrossEntropyLoss()
         client_ids = list(self.client_dataloaders.keys())
@@ -141,9 +156,10 @@ class FLSimulator:
 
         history: List[Dict[str, Any]] = []
         start_time = time.time()
+        early_stopped = False
 
         if evaluate_initial:
-            r0_metrics = self.evaluate_global(eval_criterion, compute_auprc)
+            r0_metrics = self.evaluate_global(eval_criterion, compute_auprc, subset_size=None, use_amp=use_amp)
             r0_record = {
                 "round": 0,
                 "loss": r0_metrics["loss"],
@@ -163,7 +179,8 @@ class FLSimulator:
                     f"Round 00/{num_rounds:02d} (Init) | "
                     f"Loss: {r0_metrics['loss']:.4f} | "
                     f"Acc: {r0_metrics['accuracy'] * 100:.2f}% | "
-                    f"F1: {r0_metrics['macro_f1']:.4f}"
+                    f"F1: {r0_metrics['macro_f1']:.4f}",
+                    flush=True,
                 )
 
         last_eval_metrics = r0_metrics if evaluate_initial else {"loss": 0.0, "accuracy": 0.0, "macro_f1": 0.0}
@@ -197,12 +214,22 @@ class FLSimulator:
                 client = self.client_algos[cid]
                 dloader = self.client_dataloaders[cid]
 
-                res = client.train(
-                    global_state_dict=self.global_state_dict,
-                    dataloader=dloader,
-                    epochs=epochs_per_round,
-                    server_control_variate=self.server_control_variate,
-                )
+                try:
+                    res = client.train(
+                        global_state_dict=self.global_state_dict,
+                        dataloader=dloader,
+                        epochs=epochs_per_round,
+                        server_control_variate=self.server_control_variate,
+                    )
+                except torch.cuda.OutOfMemoryError:
+                    clear_device_memory()
+                    res = client.train(
+                        global_state_dict=self.global_state_dict,
+                        dataloader=dloader,
+                        epochs=epochs_per_round,
+                        server_control_variate=self.server_control_variate,
+                    )
+
                 client_results.append(res)
                 delta = res.delta
 
@@ -276,9 +303,17 @@ class FLSimulator:
             self.global_state_dict = vector_to_state_dict(updated_w_vec, self.global_state_dict)
 
             # Global evaluation (evaluates every k rounds or on final round)
-            should_eval = (round_idx % evaluate_every_k_rounds == 0) or (round_idx == num_rounds)
+            is_final_round = (round_idx == num_rounds)
+            should_eval = (round_idx % evaluate_every_k_rounds == 0) or is_final_round
             if should_eval:
-                eval_metrics = self.evaluate_global(eval_criterion, compute_auprc)
+                # Use subset for intermediate rounds, full dataset for final round
+                current_subset = None if is_final_round else eval_subset_size
+                eval_metrics = self.evaluate_global(
+                    eval_criterion,
+                    compute_auprc,
+                    subset_size=current_subset,
+                    use_amp=use_amp,
+                )
                 last_eval_metrics = eval_metrics
             else:
                 eval_metrics = last_eval_metrics
@@ -311,16 +346,32 @@ class FLSimulator:
                     f"Acc: {acc_pct:.2f}% | "
                     f"F1: {f1:.4f}"
                     f"{eps_str}{kb_str} | "
-                    f"Time: {round_duration:.2f}s"
+                    f"Time: {round_duration:.2f}s",
+                    flush=True,
                 )
 
-            clear_device_memory()
+            # Early stopping check
+            if target_accuracy is not None and (eval_metrics["accuracy"] * 100.0 >= target_accuracy):
+                if verbose:
+                    print(
+                        f"Target accuracy reached ({eval_metrics['accuracy'] * 100.0:.2f}% >= {target_accuracy:.2f}%). "
+                        f"Early stopping at round {round_idx}.",
+                        flush=True,
+                    )
+                early_stopped = True
+                break
+
+            # Memory clearing: only on round multiple of 25 (avoids CUDA sync stall)
+            if round_idx % 25 == 0:
+                clear_device_memory()
 
         total_time = time.time() - start_time
         return {
             "history": history,
             "final_metrics": history[-1] if history else {},
             "total_time": total_time,
+            "rounds_completed": len(history) - (1 if evaluate_initial else 0),
+            "early_stopped": early_stopped,
             "device": str(self.device),
             "wire_summary": self.wire_meter.get_summary(),
         }

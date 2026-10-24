@@ -47,8 +47,14 @@ $$\max_j |a_j - b_j| \le 10^{-6}$$
 
 ## 3. Differential Privacy: Client-Level DP vs. Example-Level DP-SGD
 
-### 3.1 Formal Scope: Client-Level (User-Level) DP in Federated Learning
-Federated Learning systems in cross-silo and cross-device environments (e.g. healthcare hospital cohorts, banking institutions, consumer edge devices) require protection against the reconstruction or inference of an entire client's dataset (McMahan et al., 2018; Bhowmick et al., 2018).
+### 3.1 Formal Scope: Client-Level (User-Level) DP vs. Example-Level DP-SGD
+Federated Learning systems in cross-silo and cross-device environments (e.g. healthcare hospital cohorts, banking institutions, consumer edge devices) require protection against different threat models:
+
+> [!IMPORTANT]
+> **Fundamental Semantic Distinction**: Client-Level DP and Example-Level DP protect fundamentally different entities:
+> - **Example-Level DP** protects a **single data record/sample** (e.g. one image or one patient transaction). It permits adversaries to learn properties of client institutions or device cohorts as long as no individual record is re-identifiable.
+> - **Client-Level DP** protects **an entire client's dataset in its entirety** (all thousands of records contributed by a hospital, bank, or mobile device).
+> Because the granularity of the adjacency relation differs by orders of magnitude (one row vs thousands of rows), **their numerical epsilons ($\varepsilon$) are NOT directly comparable**. An $(\varepsilon=8)$ guarantee under Client-Level DP represents a vastly stronger operational privacy guarantee against cross-client reconstruction than an $(\varepsilon=8)$ guarantee under Example-Level DP.
 
 - **Example-Level DP-SGD** (Abadi et al., 2016):
   - Record universe $\mathcal{D}$: Individual data records (e.g. single clinical scans or user transactions).

@@ -1,0 +1,122 @@
+[
+  {
+    "domain": "Healthcare (MedMNIST)",
+    "is_dp_sgd": false,
+    "total_round_s": 1.0620918273925781,
+    "data_loading_s": 0.023120880126953125,
+    "forward_backward_s": 0.8408911228179932,
+    "per_sample_dp_s": 0.0,
+    "aggregation_s": 0.01772284507751465,
+    "evaluation_2k_subset_s": 0.025604963302612305,
+    "memory_clearing_s": 0.0005371570587158203,
+    "peak_vram_mb": 36.1669921875
+  },
+  {
+    "domain": "Healthcare (MedMNIST)",
+    "is_dp_sgd": true,
+    "total_round_s": 1.7149384021759033,
+    "data_loading_s": 0.0221860408782959,
+    "forward_backward_s": 0.6223710060119632,
+    "per_sample_dp_s": 0.9335565090179444,
+    "aggregation_s": 0.0005612373352050781,
+    "evaluation_2k_subset_s": 0.0258333683013916,
+    "memory_clearing_s": 0.0018184185028076172,
+    "peak_vram_mb": 92.046875
+  },
+  {
+    "domain": "Finance (Credit Card)",
+    "is_dp_sgd": false,
+    "total_round_s": 0.48572826385498047,
+    "data_loading_s": 0.025356531143188477,
+    "forward_backward_s": 0.3389780521392822,
+    "per_sample_dp_s": 0.0,
+    "aggregation_s": 0.0005629062652587891,
+    "evaluation_2k_subset_s": 0.024608373641967773,
+    "memory_clearing_s": 0.0026328563690185547,
+    "peak_vram_mb": 17.5869140625
+  },
+  {
+    "domain": "Finance (Credit Card)",
+    "is_dp_sgd": true,
+    "total_round_s": 1.3685448169708252,
+    "data_loading_s": 0.026553869247436523,
+    "forward_backward_s": 0.4881604194641112,
+    "per_sample_dp_s": 0.7322406291961674,
+    "aggregation_s": 0.00043773651123046875,
+    "evaluation_2k_subset_s": 0.018886566162109375,
+    "memory_clearing_s": 2.1457672119140625e-05,
+    "peak_vram_mb": 18.2646484375
+  },
+  {
+    "domain": "IoT Edge (UCI HAR)",
+    "is_dp_sgd": false,
+    "total_round_s": 0.33165860176086426,
+    "data_loading_s": 0.016376733779907227,
+    "forward_backward_s": 0.22154593467712402,
+    "per_sample_dp_s": 0.0,
+    "aggregation_s": 0.00038909912109375,
+    "evaluation_2k_subset_s": 0.014945030212402344,
+    "memory_clearing_s": 0.0003154277801513672,
+    "peak_vram_mb": 27.0947265625
+  },
+  {
+    "domain": "IoT Edge (UCI HAR)",
+    "is_dp_sgd": true,
+    "total_round_s": 0.9390833377838135,
+    "data_loading_s": 0.01746082305908203,
+    "forward_backward_s": 0.3286021232604981,
+    "per_sample_dp_s": 0.4929031848907471,
+    "aggregation_s": 0.0004203319549560547,
+    "evaluation_2k_subset_s": 0.014903783798217773,
+    "memory_clearing_s": 0.0006663799285888672,
+    "peak_vram_mb": 50.02978515625
+  },
+  {
+    "domain": "Mobile Apps (FashionMNIST)",
+    "is_dp_sgd": false,
+    "total_round_s": 2.110410451889038,
+    "data_loading_s": 0.03345179557800293,
+    "forward_backward_s": 0.5737524032592773,
+    "per_sample_dp_s": 0.0,
+    "aggregation_s": 0.0014958381652832031,
+    "evaluation_2k_subset_s": 0.42456960678100586,
+    "memory_clearing_s": 0.000560760498046875,
+    "peak_vram_mb": 35.388671875
+  },
+  {
+    "domain": "Mobile Apps (FashionMNIST)",
+    "is_dp_sgd": true,
+    "total_round_s": 3.931147336959839,
+    "data_loading_s": 0.04027533531188965,
+    "forward_backward_s": 0.9253671646118161,
+    "per_sample_dp_s": 1.388050746917725,
+    "aggregation_s": 0.0004932880401611328,
+    "evaluation_2k_subset_s": 0.4506058692932129,
+    "memory_clearing_s": 0.0013267993927001953,
+    "peak_vram_mb": 91.95751953125
+  },
+  {
+    "domain": "Autonomous Vehicles (GTSRB)",
+    "is_dp_sgd": false,
+    "total_round_s": 0.6962356567382812,
+    "data_loading_s": 0.028877735137939453,
+    "forward_backward_s": 0.5077002048492432,
+    "per_sample_dp_s": 0.0,
+    "aggregation_s": 0.001859426498413086,
+    "evaluation_2k_subset_s": 0.025536775588989258,
+    "memory_clearing_s": 0.0020203590393066406,
+    "peak_vram_mb": 53.82470703125
+  },
+  {
+    "domain": "Autonomous Vehicles (GTSRB)",
+    "is_dp_sgd": true,
+    "total_round_s": 1.6072618961334229,
+    "data_loading_s": 0.0231015682220459,
+    "forward_backward_s": 0.5745612144470215,
+    "per_sample_dp_s": 0.8618418216705324,
+    "aggregation_s": 0.0010707378387451172,
+    "evaluation_2k_subset_s": 0.021222352981567383,
+    "memory_clearing_s": 0.0016219615936279297,
+    "peak_vram_mb": 172.14501953125
+  }
+]
