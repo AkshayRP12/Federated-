@@ -1,0 +1,45 @@
+{
+  "total_time_s": 65.79730340000242,
+  "domains": {
+    "healthcare": {
+      "num_classes": 9,
+      "chance_accuracy": 11.11111111111111,
+      "honest_accuracy": 33.85,
+      "attacked_accuracy": 19.8,
+      "time_seconds": 7.927039500005776,
+      "sanity_passed": true
+    },
+    "finance": {
+      "num_classes": 2,
+      "chance_accuracy": 50.0,
+      "honest_accuracy": 99.86833327481479,
+      "attacked_accuracy": 99.85955549313577,
+      "time_seconds": 20.2126394000079,
+      "sanity_passed": true
+    },
+    "iot_edge": {
+      "num_classes": 6,
+      "chance_accuracy": 16.666666666666668,
+      "honest_accuracy": 77.36681370885647,
+      "attacked_accuracy": 23.17611129962674,
+      "time_seconds": 5.951521500013769,
+      "sanity_passed": true
+    },
+    "mobile_apps": {
+      "num_classes": 10,
+      "chance_accuracy": 10.0,
+      "honest_accuracy": 73.38,
+      "attacked_accuracy": 18.15,
+      "time_seconds": 11.604447099991376,
+      "sanity_passed": true
+    },
+    "autonomous_vehicles": {
+      "num_classes": 43,
+      "chance_accuracy": 2.3255813953488373,
+      "honest_accuracy": 14.779393011986738,
+      "attacked_accuracy": 6.630961489415965,
+      "time_seconds": 11.851201100012986,
+      "sanity_passed": true
+    }
+  }
+}

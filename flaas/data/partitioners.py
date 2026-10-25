@@ -82,6 +82,16 @@ def partition_dirichlet(
                 client_indices[cid].extend(c_indices[offset : offset + cnt].tolist())
                 offset += cnt
 
+    # Enforce minimum samples per client to prevent empty client subsets
+    for cid in range(num_clients):
+        if len(client_indices[cid]) < min_samples_per_client:
+            needed = min_samples_per_client - len(client_indices[cid])
+            donor_cid = max(client_indices.keys(), key=lambda c: len(client_indices[c]))
+            if len(client_indices[donor_cid]) > min_samples_per_client + needed:
+                donated = client_indices[donor_cid][-needed:]
+                client_indices[donor_cid] = client_indices[donor_cid][:-needed]
+                client_indices[cid].extend(donated)
+
     # Shuffle local datasets
     for cid in range(num_clients):
         np.random.shuffle(client_indices[cid])

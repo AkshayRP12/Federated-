@@ -154,10 +154,42 @@
 
 ---
 
+## Stage 4: Experiment Grid Generation & Storage (COMPLETED)
+
+### 1. Scope & Execution Overview
+Per user directive, the experiment knowledge base was standardized on the **4 canonical multi-modal domains**, providing comprehensive coverage across vision, tabular, sensor time-series, and mobile edge:
+1. **Healthcare**: PathMNIST (9 classes, vision, $3 \times 28 \times 28$)
+2. **Finance**: Credit Card Fraud Detection (2 classes, tabular PCA features)
+3. **IoT Edge**: UCI Human Activity Recognition (6 classes, sensor time-series)
+4. **Mobile Apps**: MNIST (10 classes, mobile edge)
+
+### 2. Final Dataset Metrics
+- **Matrix Dimension**: 4 Domains $\times$ 16 Canonical Scenarios $\times$ 8 Candidate FL Configurations = **512 Experiment Runs** (128 runs per domain, 100% complete).
+- **Round-by-Round Trajectories**: **5,779 communication rounds** recorded.
+- **Relational Store**: [`results/stage4_grid.sqlite`](file:///z:/federated%20L/results/stage4_grid.sqlite) (1.04 MB) containing indexed `experiment_runs` and `round_metrics`.
+- **Columnar Store**: [`results/stage4_grid.parquet`](file:///z:/federated%20L/results/stage4_grid.parquet) (36.4 KB, 512 rows).
+
+### 3. Empirical Domain Performance Summary
+| Domain | Runs Completed | Mean Accuracy (%) | Min Acc (%) | Max Acc (%) | Total Wall Time | Early Stopped Runs |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Finance** | 128 / 128 | **98.34%** | 80.99% | 99.87% | 381.1 s (6.4 min) | 128 / 128 |
+| **Healthcare** | 128 / 128 | **41.13%** | 3.65% | 99.80% | 2,758.8 s (46.0 min) | 19 / 128 |
+| **IoT Edge** | 128 / 128 | **58.33%** | 18.05% | 85.00% | 2,481.6 s (41.4 min) | 4 / 128 |
+| **Mobile Apps** | 128 / 128 | **69.25%** | 11.19% | 88.90% | 14,511.8 s (4.0 hrs) | 71 / 128 |
+| **Total / Overall** | **512 / 512** | &mdash; | &mdash; | &mdash; | **5.6 hrs total** | **222 / 512** |
+
+### 4. Technical Safeguards & Verifications
+- **Poisson Sampling under DP**: Verified alignment with Rényi Differential Privacy accountant continuous sampling assumptions.
+- **Zero-Sample Client Partition Fix**: Added `min_samples_per_client` enforcement in `flaas/data/partitioners.py` with donation from majority client partitions under extreme Dirichlet skew ($\alpha=0.1$).
+- **Unit Test Coverage**: `tests/test_stage4_grid.py` passes 5/5 tests covering scenario orthogonality, 8 domain configurations, SQLite schema, Parquet export, checkpoint resume, and DP accountant integration.
+
+---
+
 ## Known Issues / Failing
-- None. All 41 unit tests pass. Working tree clean.
+- None. All unit tests pass (`pytest tests/`). Working tree clean.
 
 ---
 
 ## Next Step
-- Await user approval to proceed to Stage 4 (Experiment Grid Generation & Storage).
+- Proceed to **Stage 5: Surrogate Modeling & Recommendation Engine** (training meta-learning rankers and configuration recommenders using `results/stage4_grid.parquet`).
+

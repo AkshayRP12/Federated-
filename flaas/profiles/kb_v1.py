@@ -33,10 +33,10 @@ class DomainProfile(BaseModel):
 KB_V1_PROFILES: Dict[str, DomainProfile] = {
     "healthcare": DomainProfile(
         domain_id="healthcare",
-        name="Healthcare Multi-Hospital Silos (MedMNIST)",
+        name="Healthcare Multi-Hospital Silos (PathMNIST)",
         description="Cross-silo collaborative diagnostics across hospital consortiums. Strict privacy compliance required.",
         data_modality="vision",
-        num_classes=8,
+        num_classes=9,
         typical_num_clients=10,
         participation_rate=1.0,
         heterogeneity_alpha=0.3,
