@@ -14,7 +14,6 @@ import streamlit as st
 # Set page configuration with wide layout
 st.set_page_config(
     page_title="FLaaS - FL Configuration Recommender",
-    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -221,7 +220,6 @@ def load_results_store():
 DOMAIN_INFO = {
     "mobile_apps": {
         "title": "Mobile Applications (mobile_apps)",
-        "icon": "📱",
         "description": "Cross-device visual categorization on user smartphones",
         "dataset_name": "MNIST Grayscale Visual Digits",
         "dataset_type": "Real Data (60,000 train / 10,000 test)",
@@ -232,7 +230,6 @@ DOMAIN_INFO = {
     },
     "iot_edge": {
         "title": "IoT Wearable Sensors (iot_edge)",
-        "icon": "⌚",
         "description": "Human activity recognition across battery-powered edge wearables",
         "dataset_name": "UCI HAR Inertial Accelerometer/Gyroscope",
         "dataset_type": "Real Data (7,352 train / 2,947 test, 561 features)",
@@ -462,10 +459,10 @@ def generate_empirical_rationale(rec, baseline, scenario_name, preset):
         sentences.append(f"Compared directly to standard FedAvg, it {perf_text} {band_text}.")
 
     if rec["is_pareto"]:
-        sentences.append("⭐ **Pareto Optimal**: No other feasible configuration achieves higher accuracy with lower bandwidth and lower training time on this benchmark.")
+        sentences.append("**Pareto Optimal**: No other feasible configuration achieves higher accuracy with lower bandwidth and lower training time on this benchmark.")
 
     if rec["epsilon"] > 0:
-        sentences.append(f"🔒 **Privacy Guarantee**: Verified differential privacy budget maintained at ε = {rec['epsilon']:.2f} (δ = 1e-5).")
+        sentences.append(f"**Privacy Guarantee**: Verified differential privacy budget maintained at ε = {rec['epsilon']:.2f} (δ = 1e-5).")
 
     return " ".join(sentences)
 
@@ -478,16 +475,16 @@ def main():
     st.markdown(
         """
         <div class="hero-card">
-            <div class="hero-title">⚡ FLaaS Recommender: Federated Learning Prescriptive Engine</div>
+            <div class="hero-title">FLaaS Recommender: Federated Learning Prescriptive Engine</div>
             <div class="hero-subtitle">
                 Specify your edge deployment constraints (devices, bandwidth, drift, threats) — our engine searches 
                 rigorous empirical benchmark executions to prescribe the provably optimal FL algorithm, compression scheme, and defense.
             </div>
             <div>
-                <span class="tag-pill pill-blue">🔬 Real Datasets (MNIST & UCI HAR)</span>
-                <span class="tag-pill pill-green">⚡ Grounded on 1 Seed (Seed 42)</span>
-                <span class="tag-pill pill-purple">🛡️ 100% Empirical (No Synthetic Hallucinations)</span>
-                <span class="tag-pill pill-amber">⚖️ Multi-Criteria Pareto Optimization</span>
+                <span class="tag-pill pill-blue">Real Datasets (MNIST & UCI HAR)</span>
+                <span class="tag-pill pill-green">Grounded on 1 Seed (Seed 42)</span>
+                <span class="tag-pill pill-purple">100% Empirical Evidence</span>
+                <span class="tag-pill pill-amber">Multi-Criteria Pareto Optimization</span>
             </div>
         </div>
         """,
@@ -497,11 +494,11 @@ def main():
     # Load results store
     df, source_label = load_results_store()
     if df.empty:
-        st.error("⚠️ No experiment runs found in results database. Please ensure grid runner has written to `results/stage4_grid.sqlite`.")
+        st.error("No experiment runs found in results database. Please ensure grid runner has written to `results/stage4_grid.sqlite`.")
         st.stop()
 
     # Sidebar: Domain Status & System Information
-    st.sidebar.markdown("### 🎯 Active Domain Selection")
+    st.sidebar.markdown("### Active Domain Selection")
     domain_choice = st.sidebar.selectbox(
         "Choose Domain",
         options=["mobile_apps", "iot_edge"],
@@ -516,16 +513,16 @@ def main():
     st.sidebar.markdown(f"**Neural Architecture**: `{dom['model']}`")
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🔒 Gating & Compliance")
+    st.sidebar.markdown("### Gating & Compliance")
     st.sidebar.markdown(
         """
-        - 🟢 **mobile_apps**: **Active** (Real MNIST, 50 devices)
-        - 🟢 **iot_edge**: **Active** (Real UCI HAR, 20 devices)
-        - 🔴 **healthcare**: *Pending fixes (class skew under Dirichlet α=0.1)*
-        - 🔴 **finance**: *Pending fixes (extreme minority class collapse)*
+        - [Active] **mobile_apps**: Real MNIST, 50 devices
+        - [Active] **iot_edge**: Real UCI HAR, 20 devices
+        - [Gated] **healthcare**: *Pending fixes (class skew under Dirichlet α=0.1)*
+        - [Gated] **finance**: *Pending fixes (extreme minority class collapse)*
         """
     )
-    st.sidebar.caption(f"📊 Results Data Store: {source_label}")
+    st.sidebar.caption(f"Results Data Store: {source_label}")
 
     # Two-Column Master Layout
     col_input, col_results = st.columns([0.38, 0.62], gap="large")
@@ -534,7 +531,7 @@ def main():
     # LEFT COLUMN: STEP 1 - DEFINE EDGE ENVIRONMENT
     # =========================================================================
     with col_input:
-        st.markdown("### 🛠️ Step 1: Define Your Edge Environment")
+        st.markdown("### Step 1: Define Your Edge Environment")
         st.markdown(
             "<span style='color: #94A3B8; font-size: 0.9rem;'>Configure the operational conditions of your edge deployment below:</span>",
             unsafe_allow_html=True,
@@ -642,17 +639,17 @@ def main():
                 "Optimization Goal",
                 options=["balanced", "accuracy", "communication", "latency"],
                 format_func=lambda p: {
-                    "balanced": "⚖️ Balanced (40% Accuracy, 30% Bandwidth, 30% Speed)",
-                    "accuracy": "🎯 Accuracy-First (Maximize Model Accuracy on Edge)",
-                    "communication": "📦 Communication-First (Minimize Uplink Megabytes Transmitted)",
-                    "latency": "⏱️ Low-Latency (Minimize Total Wall-Clock Execution Time)",
+                    "balanced": "Balanced (40% Accuracy, 30% Bandwidth, 30% Speed)",
+                    "accuracy": "Accuracy-First (Maximize Model Accuracy on Edge)",
+                    "communication": "Communication-First (Minimize Uplink Megabytes Transmitted)",
+                    "latency": "Low-Latency (Minimize Total Wall-Clock Execution Time)",
                 }[p],
                 index=0,
                 label_visibility="collapsed",
             )
 
             st.markdown("<br>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("⚡ Prescribe Optimal FL Configuration", use_container_width=True)
+            submitted = st.form_submit_button("Prescribe Optimal FL Configuration", use_container_width=True)
 
     # =========================================================================
     # RIGHT COLUMN: STEP 2 - PRESCRIBED RECOMMENDATION & PERFORMANCE EVIDENCE
@@ -693,7 +690,7 @@ def main():
         )
 
         if not ranked_candidates:
-            st.info("💡 Strict filtering yielded 0 candidates; relaxing constraints to display all empirical runs for this scenario.")
+            st.info("Strict filtering yielded 0 candidates; relaxing constraints to display all empirical runs for this scenario.")
             ranked_candidates = score_and_rank_candidates(
                 sub_df=scen_df,
                 preset=preset,
@@ -715,7 +712,7 @@ def main():
         st.markdown(
             f"""
             <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;">
-                <div style="font-size: 0.78rem; text-transform: uppercase; color: #94A3B8; font-weight: 700; letter-spacing: 0.05em;">📍 Matched Benchmark Scenario</div>
+                <div style="font-size: 0.78rem; text-transform: uppercase; color: #94A3B8; font-weight: 700; letter-spacing: 0.05em;">Matched Benchmark Scenario</div>
                 <div style="font-size: 1.15rem; font-weight: 700; color: #F1F5F9; margin-top: 2px;">{matched_human_name}</div>
                 <div style="font-size: 0.82rem; color: #64748B; margin-top: 4px;">
                     Nearest empirical grid execution | Identifier: <code>{matched_scenario_id}</code> | Normalized Feature Distance: <code>{match_dist:.3f}</code>
@@ -728,14 +725,14 @@ def main():
         # ---------------------------------------------------------------------
         # HERO RECOMMENDATION CARD
         # ---------------------------------------------------------------------
-        pareto_badge = '<span class="tag-pill pill-amber">⭐ Pareto Optimal</span>' if rec_1['is_pareto'] else ''
-        dp_badge = f'<span class="tag-pill pill-purple">🔒 ε = {rec_1["epsilon"]:.2f} DP</span>' if rec_1['epsilon'] > 0 else ''
+        pareto_badge = '<span class="tag-pill pill-amber">Pareto Optimal</span>' if rec_1['is_pareto'] else ''
+        dp_badge = f'<span class="tag-pill pill-purple">ε = {rec_1["epsilon"]:.2f} DP</span>' if rec_1['epsilon'] > 0 else ''
 
         st.markdown(
             f"""
             <div class="rec-card">
                 <div>
-                    <span class="rec-badge">🏆 Prescribed Recommendation</span>
+                    <span class="rec-badge">Prescribed Recommendation</span>
                     {pareto_badge}
                     {dp_badge}
                 </div>
@@ -783,7 +780,7 @@ def main():
         # ---------------------------------------------------------------------
         # DEDICATED VISUAL COMPARISONS (SEPARATE & CRYSTAL CLEAR)
         # ---------------------------------------------------------------------
-        st.markdown("### 📊 Head-to-Head Comparison: Prescription vs Default FedAvg")
+        st.markdown("### Head-to-Head Comparison: Prescription vs Default FedAvg")
         st.caption("Direct side-by-side empirical performance measured under the exact same scenario conditions (1 seed: Seed 42).")
 
         if baseline is not None:
@@ -791,7 +788,7 @@ def main():
 
             # Chart 1: Accuracy (%)
             with c1:
-                st.markdown("##### 🎯 Model Accuracy (%)")
+                st.markdown("##### Model Accuracy (%)")
                 acc_df = pd.DataFrame({
                     "Config": ["Prescribed", "Default FedAvg"],
                     "Accuracy (%)": [rec_1["accuracy"], baseline["accuracy"]],
@@ -799,13 +796,13 @@ def main():
                 st.bar_chart(acc_df, color=["#38BDF8"])
                 acc_diff = rec_1["accuracy"] - baseline["accuracy"]
                 if acc_diff >= 0:
-                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>▲ +{acc_diff:.2f}% higher accuracy</span>", unsafe_allow_html=True)
+                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>+{acc_diff:.2f}% higher accuracy</span>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<span style='color: #F87171; font-weight: 700;'>▼ {acc_diff:.2f}% lower accuracy</span>", unsafe_allow_html=True)
+                    st.markdown(f"<span style='color: #F87171; font-weight: 700;'>{acc_diff:.2f}% lower accuracy</span>", unsafe_allow_html=True)
 
             # Chart 2: Uplink Bandwidth (MB)
             with c2:
-                st.markdown("##### 📶 Uplink Traffic (MB)")
+                st.markdown("##### Uplink Traffic (MB)")
                 wire_df = pd.DataFrame({
                     "Config": ["Prescribed", "Default FedAvg"],
                     "Uplink (MB)": [rec_1["wire_mb"], baseline["wire_mb"]],
@@ -813,13 +810,13 @@ def main():
                 st.bar_chart(wire_df, color=["#818CF8"])
                 wire_ratio = baseline["wire_mb"] / max(1e-4, rec_1["wire_mb"])
                 if rec_1["wire_mb"] < baseline["wire_mb"]:
-                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>▼ {wire_ratio:.1f}x bandwidth reduction</span>", unsafe_allow_html=True)
+                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>{wire_ratio:.1f}x bandwidth reduction</span>", unsafe_allow_html=True)
                 else:
                     st.markdown(f"<span style='color: #94A3B8; font-weight: 600;'>{rec_1['wire_mb']:.1f} MB transmitted</span>", unsafe_allow_html=True)
 
             # Chart 3: Runtime (s)
             with c3:
-                st.markdown("##### ⏱️ Wall-Clock Time (s)")
+                st.markdown("##### Wall-Clock Time (s)")
                 time_df = pd.DataFrame({
                     "Config": ["Prescribed", "Default FedAvg"],
                     "Time (s)": [rec_1["time_sec"], baseline["time_sec"]],
@@ -827,7 +824,7 @@ def main():
                 st.bar_chart(time_df, color=["#C084FC"])
                 time_diff = rec_1["time_sec"] - baseline["time_sec"]
                 if time_diff <= 0:
-                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>▲ {abs(time_diff):.1f}s faster</span>", unsafe_allow_html=True)
+                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>{abs(time_diff):.1f}s faster</span>", unsafe_allow_html=True)
                 else:
                     st.markdown(f"<span style='color: #94A3B8; font-weight: 600;'>+{time_diff:.1f}s defense overhead</span>", unsafe_allow_html=True)
         else:
@@ -837,7 +834,7 @@ def main():
         # TOP 3 CANDIDATE ALTERNATIVES TABLE
         # ---------------------------------------------------------------------
         st.markdown("---")
-        st.markdown("### 🥈 Top 3 Evaluated Alternatives")
+        st.markdown("### Top 3 Evaluated Alternatives")
         st.caption("Ranked according to your selected optimization priority weights:")
 
         top3_rows = []
@@ -850,14 +847,14 @@ def main():
                 "Uplink MB": f"{c['wire_mb']:.1f} MB",
                 "Runtime": f"{c['time_sec']:.1f} s",
                 "Rounds": c["rounds"],
-                "Pareto Optimal": "⭐ Yes" if c["is_pareto"] else "No",
+                "Pareto Optimal": "Yes" if c["is_pareto"] else "No",
             })
         st.dataframe(pd.DataFrame(top3_rows), use_container_width=True, hide_index=True)
 
         # ---------------------------------------------------------------------
         # EDUCATIONAL FL GLOSSARY (COLLAPSIBLE ACCORDION)
         # ---------------------------------------------------------------------
-        with st.expander("💡 Plain-Language Guide: What do these algorithms & terms mean?"):
+        with st.expander("Plain-Language Guide: What do these algorithms & terms mean?"):
             st.markdown(
                 """
                 - **FedAvg**: The standard baseline. Clients train locally on their data and the server simply averages their weights. Fails when data is non-IID or under attack.
