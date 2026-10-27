@@ -1,0 +1,446 @@
+{
+  "mobile_apps": {
+    "domain_id": "mobile_apps",
+    "domain_name": "Mobile Edge Visual Categorization (Fashion/EMNIST)",
+    "num_scenarios_evaluated": 16,
+    "summary_by_method": {
+      "Recommender_Proposed": {
+        "mean_accuracy": 84.9725,
+        "mean_regret": 1.724375000000001,
+        "mean_rank": 3.1875,
+        "std_accuracy": 3.588867335246594
+      },
+      "Baseline_Default_FedAvg": {
+        "mean_accuracy": 74.72375,
+        "mean_regret": 11.973125,
+        "mean_rank": 3.1875,
+        "std_accuracy": 17.35824583411296
+      },
+      "Baseline_Random_Pick": {
+        "mean_accuracy": 69.24828125,
+        "mean_regret": 17.448593750000004,
+        "mean_rank": 4.5,
+        "std_accuracy": 11.43083023486914
+      },
+      "Baseline_Handwritten_Rule": {
+        "mean_accuracy": 85.243125,
+        "mean_regret": 1.4537500000000012,
+        "mean_rank": 2.5625,
+        "std_accuracy": 3.707783567628373
+      },
+      "Baseline_Domain_Blind": {
+        "mean_accuracy": 84.87375,
+        "mean_regret": 1.8231250000000028,
+        "mean_rank": 2.75,
+        "std_accuracy": 3.664361941388975
+      },
+      "Baseline_Simple_KNN": {
+        "mean_accuracy": 83.59312500000001,
+        "mean_regret": 3.1037500000000025,
+        "mean_rank": 3.1875,
+        "std_accuracy": 5.2189614852358295
+      }
+    },
+    "per_scenario_records": [
+      {
+        "scenario_id": "scen_01",
+        "scenario_name": "Standard Clean IID",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 87.64999999999999,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 87.49,
+        "fedavg_acc": 87.64999999999999,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 87.64999999999999
+      },
+      {
+        "scenario_id": "scen_02",
+        "scenario_name": "Mild Non-IID",
+        "optimal_config": "cfg_04_trimmed_mean",
+        "optimal_acc": 87.53999999999999,
+        "rec_chosen": "cfg_07_client_dp",
+        "rec_acc": 86.03,
+        "fedavg_acc": 86.65,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 86.65
+      },
+      {
+        "scenario_id": "scen_03",
+        "scenario_name": "Moderate Non-IID",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 87.96000000000001,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 86.02,
+        "fedavg_acc": 85.02,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 85.02
+      },
+      {
+        "scenario_id": "scen_04",
+        "scenario_name": "Severe Non-IID",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 86.59,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 85.25,
+        "fedavg_acc": 86.59,
+        "rule_chosen": "cfg_02_fedprox",
+        "rule_acc": 86.58
+      },
+      {
+        "scenario_id": "scen_05",
+        "scenario_name": "Partial Participation Moderate (50%)",
+        "optimal_config": "cfg_06_ternary_compression",
+        "optimal_acc": 85.96000000000001,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 85.24000000000001,
+        "fedavg_acc": 85.24000000000001,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 85.24000000000001
+      },
+      {
+        "scenario_id": "scen_06",
+        "scenario_name": "Partial Participation Mobile (20%)",
+        "optimal_config": "cfg_06_ternary_compression",
+        "optimal_acc": 88.3,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 85.1,
+        "fedavg_acc": 87.44,
+        "rule_chosen": "cfg_06_ternary_compression",
+        "rule_acc": 88.3
+      },
+      {
+        "scenario_id": "scen_07",
+        "scenario_name": "Extreme Heterogeneity & Mobile Participation",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 88.46000000000001,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 88.46000000000001,
+        "fedavg_acc": 88.46000000000001,
+        "rule_chosen": "cfg_02_fedprox",
+        "rule_acc": 88.44
+      },
+      {
+        "scenario_id": "scen_08",
+        "scenario_name": "Sign-Flip Attack Mild Skew",
+        "optimal_config": "cfg_04_trimmed_mean",
+        "optimal_acc": 87.48,
+        "rec_chosen": "cfg_05_krum_bulyan",
+        "rec_acc": 87.44,
+        "fedavg_acc": 71.65,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 87.48
+      },
+      {
+        "scenario_id": "scen_09",
+        "scenario_name": "Sign-Flip Attack Severe Skew",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 85.26,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 72.54,
+        "fedavg_acc": 62.45,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 72.54
+      },
+      {
+        "scenario_id": "scen_10",
+        "scenario_name": "Gaussian Noise Attack",
+        "optimal_config": "cfg_07_client_dp",
+        "optimal_acc": 86.85000000000001,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 86.61,
+        "fedavg_acc": 37.84,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 86.61
+      },
+      {
+        "scenario_id": "scen_11",
+        "scenario_name": "Scaled Update Attack",
+        "optimal_config": "cfg_07_client_dp",
+        "optimal_acc": 88.92999999999999,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 85.18,
+        "fedavg_acc": 62.28,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 85.18
+      },
+      {
+        "scenario_id": "scen_12",
+        "scenario_name": "High-Adversary Attack (30%)",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 86.85000000000001,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 86.21,
+        "fedavg_acc": 32.21,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 86.21
+      },
+      {
+        "scenario_id": "scen_13",
+        "scenario_name": "Client DP Standard (eps=8.0)",
+        "optimal_config": "cfg_04_trimmed_mean",
+        "optimal_acc": 86.33,
+        "rec_chosen": "cfg_07_client_dp",
+        "rec_acc": 86.03,
+        "fedavg_acc": 86.03,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 86.03
+      },
+      {
+        "scenario_id": "scen_14",
+        "scenario_name": "Client DP Strict (eps=4.0)",
+        "optimal_config": "cfg_04_trimmed_mean",
+        "optimal_acc": 86.33,
+        "rec_chosen": "cfg_07_client_dp",
+        "rec_acc": 86.03,
+        "fedavg_acc": 86.03,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 86.03
+      },
+      {
+        "scenario_id": "scen_15",
+        "scenario_name": "Client DP with Partial Participation",
+        "optimal_config": "cfg_02_fedprox",
+        "optimal_acc": 80.80000000000001,
+        "rec_chosen": "cfg_07_client_dp",
+        "rec_acc": 80.73,
+        "fedavg_acc": 80.73,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 80.73
+      },
+      {
+        "scenario_id": "scen_16",
+        "scenario_name": "Compound Challenge: Skew + Attack + Privacy",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 85.86,
+        "rec_chosen": "cfg_04_trimmed_mean",
+        "rec_acc": 85.2,
+        "fedavg_acc": 69.31,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 85.2
+      }
+    ],
+    "dataset_label": "1-seed (Seed 42)"
+  },
+  "iot_edge": {
+    "domain_id": "iot_edge",
+    "domain_name": "IoT Wearable Sensors (UCI HAR)",
+    "num_scenarios_evaluated": 16,
+    "summary_by_method": {
+      "Recommender_Proposed": {
+        "mean_accuracy": 69.89523243976925,
+        "mean_regret": 3.9446895147607743,
+        "mean_rank": 2.25,
+        "std_accuracy": 17.22504851442365
+      },
+      "Baseline_Default_FedAvg": {
+        "mean_accuracy": 63.397098744485916,
+        "mean_regret": 10.442823210044114,
+        "mean_rank": 2.6875,
+        "std_accuracy": 21.14023687707055
+      },
+      "Baseline_Random_Pick": {
+        "mean_accuracy": 58.33103579911774,
+        "mean_regret": 15.508886155412284,
+        "mean_rank": 4.5,
+        "std_accuracy": 15.046732333228649
+      },
+      "Baseline_Handwritten_Rule": {
+        "mean_accuracy": 67.98227010519173,
+        "mean_regret": 5.8576518493383105,
+        "mean_rank": 2.6875,
+        "std_accuracy": 15.486105408774142
+      },
+      "Baseline_Domain_Blind": {
+        "mean_accuracy": 65.85934848998983,
+        "mean_regret": 7.9805734645402095,
+        "mean_rank": 3.6875,
+        "std_accuracy": 15.322482217488506
+      },
+      "Baseline_Simple_KNN": {
+        "mean_accuracy": 70.83474720054292,
+        "mean_regret": 3.0051747539871054,
+        "mean_rank": 2.3125,
+        "std_accuracy": 14.53798300077976
+      }
+    },
+    "per_scenario_records": [
+      {
+        "scenario_id": "scen_01",
+        "scenario_name": "Standard Clean IID",
+        "optimal_config": "cfg_02_fedprox",
+        "optimal_acc": 88.46284356973193,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 88.36104513064133,
+        "fedavg_acc": 88.36104513064133,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 88.36104513064133
+      },
+      {
+        "scenario_id": "scen_02",
+        "scenario_name": "Mild Non-IID",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 87.03766542246352,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 87.03766542246352,
+        "fedavg_acc": 87.03766542246352,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 87.03766542246352
+      },
+      {
+        "scenario_id": "scen_03",
+        "scenario_name": "Moderate Non-IID",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 87.17339667458432,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 87.17339667458432,
+        "fedavg_acc": 87.17339667458432,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 87.17339667458432
+      },
+      {
+        "scenario_id": "scen_04",
+        "scenario_name": "Severe Non-IID",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 72.14116050220564,
+        "rec_chosen": "cfg_03_scaffold_nova",
+        "rec_acc": 37.224295894129625,
+        "fedavg_acc": 72.14116050220564,
+        "rule_chosen": "cfg_02_fedprox",
+        "rule_acc": 71.73396674584322
+      },
+      {
+        "scenario_id": "scen_05",
+        "scenario_name": "Partial Participation Moderate (50%)",
+        "optimal_config": "cfg_04_trimmed_mean",
+        "optimal_acc": 81.23515439429929,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 78.38479809976246,
+        "fedavg_acc": 78.38479809976246,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 78.38479809976246
+      },
+      {
+        "scenario_id": "scen_06",
+        "scenario_name": "Partial Participation Mobile (20%)",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 80.01357312521208,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 80.01357312521208,
+        "fedavg_acc": 80.01357312521208,
+        "rule_chosen": "cfg_06_ternary_compression",
+        "rule_acc": 59.61995249406176
+      },
+      {
+        "scenario_id": "scen_07",
+        "scenario_name": "Extreme Heterogeneity & Mobile Participation",
+        "optimal_config": "cfg_06_ternary_compression",
+        "optimal_acc": 45.77536477774007,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 43.196470987444854,
+        "fedavg_acc": 43.196470987444854,
+        "rule_chosen": "cfg_02_fedprox",
+        "rule_acc": 41.22836783169325
+      },
+      {
+        "scenario_id": "scen_08",
+        "scenario_name": "Sign-Flip Attack Mild Skew",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 82.1513403461147,
+        "rec_chosen": "cfg_05_krum_bulyan",
+        "rec_acc": 82.1513403461147,
+        "fedavg_acc": 76.68815744825245,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 72.00542925008483
+      },
+      {
+        "scenario_id": "scen_09",
+        "scenario_name": "Sign-Flip Attack Severe Skew",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 69.08720732948761,
+        "rec_chosen": "cfg_05_krum_bulyan",
+        "rec_acc": 69.08720732948761,
+        "fedavg_acc": 30.810994231421784,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 55.58194774346793
+      },
+      {
+        "scenario_id": "scen_10",
+        "scenario_name": "Gaussian Noise Attack",
+        "optimal_config": "cfg_04_trimmed_mean",
+        "optimal_acc": 74.95758398371225,
+        "rec_chosen": "cfg_05_krum_bulyan",
+        "rec_acc": 71.42857142857143,
+        "fedavg_acc": 18.052256532066508,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 74.95758398371225
+      },
+      {
+        "scenario_id": "scen_11",
+        "scenario_name": "Scaled Update Attack",
+        "optimal_config": "cfg_04_trimmed_mean",
+        "optimal_acc": 82.9657278588395,
+        "rec_chosen": "cfg_05_krum_bulyan",
+        "rec_acc": 75.67017305734646,
+        "fedavg_acc": 49.4740413980319,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 82.9657278588395
+      },
+      {
+        "scenario_id": "scen_12",
+        "scenario_name": "High-Adversary Attack (30%)",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 88.93790295215473,
+        "rec_chosen": "cfg_05_krum_bulyan",
+        "rec_acc": 88.93790295215473,
+        "fedavg_acc": 73.36274177129283,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 62.36851034950798
+      },
+      {
+        "scenario_id": "scen_13",
+        "scenario_name": "Client DP Standard (eps=8.0)",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 70.51238547675602,
+        "rec_chosen": "cfg_07_client_dp",
+        "rec_acc": 70.51238547675602,
+        "fedavg_acc": 70.51238547675602,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 70.51238547675602
+      },
+      {
+        "scenario_id": "scen_14",
+        "scenario_name": "Client DP Strict (eps=4.0)",
+        "optimal_config": "cfg_01_baseline",
+        "optimal_acc": 70.51238547675602,
+        "rec_chosen": "cfg_07_client_dp",
+        "rec_acc": 70.51238547675602,
+        "fedavg_acc": 70.51238547675602,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 70.51238547675602
+      },
+      {
+        "scenario_id": "scen_15",
+        "scenario_name": "Client DP with Partial Participation",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 53.41024770953512,
+        "rec_chosen": "cfg_07_client_dp",
+        "rec_acc": 44.89311163895487,
+        "fedavg_acc": 44.89311163895487,
+        "rule_chosen": "cfg_01_baseline",
+        "rule_acc": 44.89311163895487
+      },
+      {
+        "scenario_id": "scen_16",
+        "scenario_name": "Compound Challenge: Skew + Attack + Privacy",
+        "optimal_config": "cfg_05_krum_bulyan",
+        "optimal_acc": 47.06481167288768,
+        "rec_chosen": "cfg_01_baseline",
+        "rec_acc": 43.73939599592806,
+        "fedavg_acc": 43.73939599592806,
+        "rule_chosen": "cfg_04_trimmed_mean",
+        "rule_acc": 40.38004750593824
+      }
+    ],
+    "dataset_label": "1-seed (Seed 42)"
+  }
+}
