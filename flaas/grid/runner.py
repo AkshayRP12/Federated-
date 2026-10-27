@@ -284,9 +284,9 @@ def run_grid(
                         run_id, domain_id, scenario.scenario_id, config.config_id, seed,
                         final_acc, final_loss, final_f1, rounds_done,
                         early_stopped, run_duration,
-                        wire_sum.get("total_uplink_bytes", 0),
-                        wire_sum.get("total_downlink_bytes", 0),
-                        wire_sum.get("total_wire_bytes", 0),
+                        wire_sum.get("uplink_bytes", wire_sum.get("total_uplink_bytes", 0)),
+                        wire_sum.get("downlink_bytes", wire_sum.get("total_downlink_bytes", 0)),
+                        wire_sum.get("total_bytes", wire_sum.get("total_wire_bytes", 0)),
                         final_eps, timestamp,
                     ))
 

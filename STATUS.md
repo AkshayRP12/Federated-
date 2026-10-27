@@ -190,54 +190,111 @@ Per user directive, the experiment knowledge base was standardized on the **4 ca
 
 ---
 
-## Stage 5: FL Configuration Recommender Engine (COMPLETED)
+---
 
-### 1. Scope & Domain Gating (Per Directive)
-- **Active Domains**: **Mobile Apps** (`mobile_apps`, real MNIST) and **IoT Edge** (`iot_edge`, real UCI HAR).
-- **Gated Domains**: **Healthcare** (`healthcare`) and **Finance** (`finance`) marked as `"pending_fixes"` and strictly excluded from the recommender and UI until fixed.
-- **Data Evidence**: All empirical metrics derived from 1-seed canonical grid execution (seed=42).
-- **Architecture**:
-  - Feasibility filter restricted to the domain's frozen `kb-v1` pool and operational constraints (privacy, Byzantine robustness, compression).
-  - Nearest-scenario matching in normalized operational feature space.
-  - Multi-criteria scoring across Accuracy, Communication efficiency, and Latency.
-  - Mathematical Pareto frontier identification.
-  - Plain-language rationale generator citing exact experiment numbers and bandwidth savings.
-  - Extra Simple Baseline Model (`SimpleKNNBaseline`).
+## Stage 5: FL Configuration Recommender Engine & Re-Analysis (AUDITED)
 
-### 2. Systematic Leave-One-Scenario-Out (LOSO) Cross-Validation Results
-Evaluated across all 16 scenarios held out sequentially per domain:
+### 1. Scope, Gating & Dataset Identification
+- **Active Domains**: **Mobile Apps** (`mobile_apps`) and **IoT Edge** (`iot_edge`).
+- **Gated Domains**: **Healthcare** (`healthcare`) and **Finance** (`finance`) marked as `"pending_fixes"` and excluded until small-$n$ partition collapse issues are resolved.
+- **Dataset Identification**:
+  - `mobile_apps`: **Real MNIST** (`data/mnist/MNIST/raw`, 60,000 train / 10,000 test, $1 \times 28 \times 28$ grayscale, 10 classes).
+  - `iot_edge`: **Real UCI HAR** (`data/uci_har/uci_har_preprocessed.pt`, 7,352 train / 2,947 test, 561 inertial features, 6 classes).
+- **Oracle Definition**: The oracle benchmark is **pool-restricted** (it selects the maximum-performing configuration within the feasible candidate pool evaluated for that domain and scenario).
+- **Rank Tie Handling**: When configurations achieve identical accuracy within $\pm 0.05\%$, ties are classified as exact ties rather than arbitrary winner selection.
+- **Mobile Top Accuracy Explanation**: Mobile achieved 88.9% (vs 93.4% in Stage 2) because: (1) 50 clients partitioned with $q=0.2$ participation (vs 10 clients with 100% participation in Stage 2); (2) early-stopping threshold $85.0\%$ triggered round termination at rounds 3–7; (3) client learning rate $\eta_l=0.01$ (vs $0.05$ in Stage 2).
 
-#### Mobile Apps Domain (16 Scenarios)
-| Method / Baseline | Mean Accuracy (%) | Mean Regret (%) | Mean Rank (1=best) |
-| :--- | :---: | :---: | :---: |
-| **Recommender (Proposed)** | **84.97%** | **1.72%** | **3.19** |
-| Baseline: Default FedAvg | 74.72% | 11.97% | 3.19 |
-| Baseline: Random Pick | 69.25% | 17.45% | 4.50 |
-| Baseline: Handwritten Rule | 85.24% | 1.45% | 2.56 |
-| Baseline: Domain-Blind | 84.87% | 1.82% | 2.75 |
-| Baseline: Simple KNN Model | 83.59% | 3.10% | 3.19 |
+---
 
-#### IoT Edge Domain (16 Scenarios)
-| Method / Baseline | Mean Accuracy (%) | Mean Regret (%) | Mean Rank (1=best) |
-| :--- | :---: | :---: | :---: |
-| **Recommender (Proposed)** | **69.90%** | **3.94%** | **2.25** |
-| Baseline: Default FedAvg | 63.40% | 10.44% | 2.69 |
-| Baseline: Random Pick | 58.33% | 15.51% | 4.50 |
-| Baseline: Handwritten Rule | 67.98% | 5.86% | 2.69 |
-| Baseline: Domain-Blind | 65.86% | 7.98% | 3.69 |
-| Baseline: Simple KNN Model | 70.83% | 3.01% | 2.31 |
+### 2. Hand-Written Rule Implementation & Origin Disclosure
+```python
+def handwritten_rule_recommend(scenario: ScenarioSpec) -> str:
+    """
+    Literature-derived baseline logic:
+    1. Byzantine Attack Present -> TrimmedMean coordinate filtering (Yin et al., 2018).
+    2. Severe Non-IID Skew (alpha <= 0.1) -> FedProx proximal regularizer (Li et al., 2020).
+    3. Low Participation / Bandwidth (q <= 0.2) -> Thresholded Ternary 2-bit packing.
+    4. Clean / Canonical -> Standard FedAvg baseline.
+    """
+    if scenario.attack_type is not None and scenario.attack_fraction > 0.0:
+        return "cfg_04_trimmed_mean"
+    elif scenario.heterogeneity_alpha is not None and scenario.heterogeneity_alpha <= 0.1:
+        return "cfg_02_fedprox"
+    elif scenario.participation_rate <= 0.2:
+        return "cfg_06_ternary_compression"
+    else:
+        return "cfg_01_baseline"
+```
+- **Origin Confirmation**: The rule was formulated based on canonical literature principles prior to Stage 4. However, its exact competitive performance on this benchmark was observed after Stage 4 execution; it represents an informed heuristic baseline rather than an independent double-blind predictor.
 
-- **Key Finding**: The Recommender achieves a **+10.25% accuracy gain** on Mobile Apps over default FedAvg (and **+6.50% on IoT Edge**), drastically reducing regret under Byzantine adversarial attacks and extreme non-IID skew.
-- **Saved Artifact**: [`results/stage5_loso_evaluation.json`](file:///z:/federated%20L/results/stage5_loso_evaluation.json).
+---
+
+### 3. Systematic LOSO Re-Analysis: Success Rate, Rounds, Bytes, and Bootstrap 95% CIs
+*Evaluated across all 16 held-out canonical scenarios per domain. Strictly 1 seed (seed=42). No claims of "beating all baselines" — reported strictly from empirical numbers.*
+
+#### A. Mobile Apps Domain (Target Accuracy = 85.0%)
+| Method / Baseline | Mean Acc (%) | Success Rate (%) | Mean Rounds to Target | Mean Uplink (MB) | Wins | Ties | Losses | Mean Diff (%) | Paired Bootstrap 95% CI |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Recommender (Proposed)** | **85.22%** | **87.5%** | **8.44** | **130.28** | — | — | — | — | — |
+| Baseline: Default FedAvg | 74.72% | 56.25% | 9.94 | 170.58 | 9 | 4 | 3 | +10.49% | [+3.00%, +19.81%] |
+| Baseline: Random Pick | 69.25% | 55.47% | 10.70 | 132.63 | 16 | 0 | 0 | +15.97% | [+10.98%, +21.94%] |
+| Baseline: Handwritten Rule | 85.24% | 87.5% | 8.00 | 126.26 | 2 | 11 | 3 | -0.03% | [-0.27%, +0.20%] |
+| Baseline: Domain-Blind | 84.87% | 87.5% | 8.69 | 140.64 | 4 | 9 | 3 | +0.34% | [-0.16%, +0.94%] |
+| Baseline: Simple KNN Model | 83.59% | 75.0% | 8.88 | 137.70 | 7 | 7 | 2 | +1.62% | [+0.29%, +3.77%] |
+
+*Findings on Mobile Apps*: The Recommender demonstrates a statistically significant accuracy gain over default FedAvg (+10.49% [CI: +3.00% to +19.81%]), Random Pick (+15.97% [CI: +10.98% to +21.94%]), and Simple KNN (+1.62% [CI: +0.29% to +3.77%]). It statistically ties the Handwritten Rule (mean diff -0.03%, CI spans zero) and Domain-Blind baseline.
+
+#### B. IoT Edge Domain (Target Accuracy = 88.0%)
+| Method / Baseline | Mean Acc (%) | Success Rate (%) | Mean Rounds to Target | Mean Uplink (MB) | Wins | Ties | Losses | Mean Diff (%) | Paired Bootstrap 95% CI |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Recommender (Proposed)** | **66.97%** | **6.25%** | **15.00** | **53.73** | — | — | — | — | — |
+| Baseline: Default FedAvg | 63.40% | 6.25% | 14.75 | 76.08 | 6 | 4 | 6 | +3.57% | [-6.24%, +14.19%] |
+| Baseline: Random Pick | 58.33% | 3.12% | 14.91 | 58.84 | 14 | 0 | 2 | +8.64% | [+1.75%, +15.22%] |
+| Baseline: Handwritten Rule | 67.98% | 6.25% | 14.75 | 74.99 | 4 | 5 | 7 | -1.01% | [-7.41%, +4.94%] |
+| Baseline: Domain-Blind | 65.86% | 6.25% | 14.75 | 76.08 | 7 | 0 | 9 | +1.11% | [-4.27%, +6.66%] |
+| Baseline: Simple KNN Model | 70.83% | 12.50% | 14.75 | 76.08 | 2 | 9 | 5 | -3.87% | [-8.82%, +0.20%] |
+
+*Findings on IoT Edge*: The Recommender achieves a statistically significant improvement over Random Pick (+8.64% [CI: +1.75% to +15.22%]). Differences vs Default FedAvg (+3.57%), Handwritten Rule (-1.01%), and Domain-Blind (+1.11%) have 95% CIs spanning zero. Simple KNN attained higher raw accuracy but transmitted **41.6% more uplink bytes** (76.08 MB vs 53.73 MB).
+
+---
+
+## Stage 8: Interactive Thin Demo (Streamlit) (COMPLETED)
+- **File**: [`demo/app.py`](file:///z:/federated%20L/demo/app.py)
+- **Features**:
+  - Domain dropdown restricted to **Mobile Apps** and **IoT Edge** with real dataset descriptions (MNIST 60k/10k, UCI HAR 7,352/2,947). Healthcare and Finance explicitly labeled as "Pending fixes".
+  - Operational requirements form: Client heterogeneity ($\alpha$), participation rate ($q$), Byzantine attack type & fraction, Differential Privacy requirement ($\varepsilon$), and communication bandwidth constraint.
+  - Nearest scenario identification with normalized distance.
+  - Top-3 candidate configurations with multi-criteria scores, accuracy, wire bytes (MB), runtime (s), and Pareto optimality tags.
+  - Plain-language empirical rationale citing exact experiment numbers and net improvements.
+  - Comparison bar chart: Recommended vs Default FedAvg on the closest scenario.
+  - Automatic results store polling (reads from `results/stage4_grid.parquet` and `.sqlite` with 5s cache TTL).
+  - All metrics prominently labeled **"1 seed (Seed 42)"**.
+
+---
+
+## Grid Expansion for Mobile and IoT Domains (IN PROGRESS)
+- **Execution File**: [`flaas/grid/expanded_runner.py`](file:///z:/federated%20L/flaas/grid/expanded_runner.py)
+- **Scenarios File**: [`flaas/grid/expanded_scenarios.py`](file:///z:/federated%20L/flaas/grid/expanded_scenarios.py)
+- **Domain-Specific Scenarios**:
+  - IoT Edge: 7 scenarios, 20 clients, realistic participation ($q \in \{0.2, 0.5\}$).
+  - Mobile Apps: 7 scenarios, 50 clients, realistic participation ($q \in \{0.1, 0.2\}$).
+- **Expanded Algorithms & Configurations (16 total)**:
+  - SCAFFOLD (control variates), FedNova (normalized averaging), FedAdam (adaptive server moments).
+  - Byzantine defenses: Bulyan, CoordinateMedian, MultiKrum, TrimmedMean.
+  - Compressors: QSGD (8-level stochastic quantization), Ternary 2-bit packing ($16\times$).
+  - Differential Privacy Axis: `off`, `eps=8.0`, `eps=4.0`, `eps=1.0`.
+- **Execution Order**: IoT Edge first (112 runs), followed by Mobile Apps (112 runs). 1 seed (`seed=42`). Frozen `kb-v1` profiles untouched.
 
 ---
 
 ## Known Issues / Failing
-- None. All 53 unit tests pass on CPU (`pytest tests/`). Working tree clean.
+- None. All 60 unit tests pass on CPU (`pytest tests/`). Working tree clean.
 
 ---
 
 ## Next Step
-- Await user review of Stage 5 evaluation before proceeding to Stage 6 (Interactive UI / API).
+- Monitor completion of expanded grid runs into SQLite/Parquet.
+- Re-run Streamlit demo with expanded grid results.
+
 
 
