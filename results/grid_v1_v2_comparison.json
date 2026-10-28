@@ -1,0 +1,110 @@
+{
+  "grid_v1_canonical": {
+    "mobile_apps": {
+      "target": 85.0,
+      "metrics": {
+        "Recommender_Proposed": {
+          "mean_acc": 85.2175,
+          "success_rate_pct": 87.5,
+          "mean_rounds": 8.4375,
+          "mean_mb": 130.28295135498047
+        },
+        "Baseline_Default_FedAvg": {
+          "mean_acc": 74.72375,
+          "success_rate_pct": 56.25,
+          "mean_rounds": 9.9375,
+          "mean_mb": 170.57786560058594
+        },
+        "Baseline_Random_Pick": {
+          "mean_acc": 69.24828125,
+          "success_rate_pct": 55.46875,
+          "mean_rounds": 10.6953125,
+          "mean_mb": 132.62892773747444
+        },
+        "Baseline_Handwritten_Rule": {
+          "mean_acc": 85.243125,
+          "success_rate_pct": 87.5,
+          "mean_rounds": 8.0,
+          "mean_mb": 126.25657117366791
+        }
+      }
+    },
+    "iot_edge": {
+      "target": 70.0,
+      "metrics": {
+        "Recommender_Proposed": {
+          "mean_acc": 66.96852731591449,
+          "success_rate_pct": 62.5,
+          "mean_rounds": 15.0,
+          "mean_mb": 53.73247766494751
+        },
+        "Baseline_Default_FedAvg": {
+          "mean_acc": 63.397098744485916,
+          "success_rate_pct": 62.5,
+          "mean_rounds": 14.75,
+          "mean_mb": 76.07627058029175
+        },
+        "Baseline_Random_Pick": {
+          "mean_acc": 58.33103579911774,
+          "success_rate_pct": 38.28125,
+          "mean_rounds": 14.90625,
+          "mean_mb": 58.837343126535416
+        },
+        "Baseline_Handwritten_Rule": {
+          "mean_acc": 67.98227010519173,
+          "success_rate_pct": 62.5,
+          "mean_rounds": 14.75,
+          "mean_mb": 74.99044799804688
+        }
+      }
+    }
+  },
+  "grid_v2_expanded": {
+    "mobile_apps": {
+      "target": 85.0,
+      "metrics": {
+        "Recommender_Proposed": {
+          "mean_acc": 71.64428571428572,
+          "success_rate_pct": 57.14285714285714,
+          "mean_rounds": 7.571428571428571,
+          "mean_mb": 31.774335043770925
+        },
+        "Baseline_Default_FedAvg": {
+          "mean_acc": 75.23857142857142,
+          "success_rate_pct": 57.14285714285714,
+          "mean_rounds": 7.571428571428571,
+          "mean_mb": 55.896876743861604
+        },
+        "Baseline_Random_Pick": {
+          "mean_acc": 51.495625000000004,
+          "success_rate_pct": 34.82142857142857,
+          "mean_rounds": 8.642857142857142,
+          "mean_mb": 55.12530104603086
+        }
+      }
+    },
+    "iot_edge": {
+      "target": 70.0,
+      "metrics": {
+        "Recommender_Proposed": {
+          "mean_acc": 60.78336322652576,
+          "success_rate_pct": 28.57142857142857,
+          "mean_rounds": 10.0,
+          "mean_mb": 32.804420471191406
+        },
+        "Baseline_Default_FedAvg": {
+          "mean_acc": 60.52644335643996,
+          "success_rate_pct": 42.857142857142854,
+          "mean_rounds": 10.0,
+          "mean_mb": 56.74213736397879
+        },
+        "Baseline_Random_Pick": {
+          "mean_acc": 48.48483930389259,
+          "success_rate_pct": 23.214285714285715,
+          "mean_rounds": 10.0,
+          "mean_mb": 50.474101526396616
+        }
+      }
+    }
+  }
+}

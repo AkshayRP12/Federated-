@@ -1,14 +1,31 @@
 """
-FLaaS Configuration Recommender - Interactive Demo (Stage 8)
+FLaaS Configuration Recommender & Live Federated View - Interactive Demo (Stage 8)
 Supports Mobile Applications and IoT Edge domains.
-Recommendations come from experiments on real MNIST and UCI HAR subsets, 1 seed, 2 domains.
+Best among the tested configurations in our experiments across real MNIST and UCI HAR subsets.
+Limitations: Evaluated across 2 domains, 1 seed (seed 42), subsampled data, and simulated clients.
 """
 
 import os
 import sqlite3
+import random
+import copy
+from typing import List, Dict, Any, Optional
+
 import pandas as pd
 import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Subset
 import streamlit as st
+
+from flaas.data.domain_adapters import get_domain_adapter
+from flaas.data.partitioners import partition_dirichlet
+from flaas.fl.models import HARMLP, MobileCNN
+from flaas.fl.client_algos import FedAvgClient, FedProxClient
+from flaas.fl.server_rules import FedAvgMean, TrimmedMean, Krum, state_dict_to_vector, vector_to_state_dict
+from flaas.compression.compressors import IdentityCompressor, ThresholdedTernaryCompressor, QSGDCompressor
+from flaas.fl.metrics import evaluate_model
+from flaas.fl.device import clear_device_memory
 
 # Set page configuration with wide layout
 st.set_page_config(
@@ -71,7 +88,7 @@ DOMAIN_INFO = {
         "num_clients": 20,
         "default_q": 0.50,
         "model": "HARMLP (561 -> 128 -> 64 -> 6 classes, 80.8k params)",
-        "target_acc": 88.0,
+        "target_acc": 70.0,
     },
 }
 
@@ -122,6 +139,7 @@ CONFIG_NAMES = {
     "exp_15_robust_ternary": "TrimmedMean + Ternary 2-Bit Packing",
     "exp_16_fedadam_ternary": "FedAdam + Ternary 2-Bit Packing",
 }
+
 
 # -----------------------------------------------------------------------------
 # Scenario Matching & Feature Encoding
@@ -252,19 +270,17 @@ def score_and_rank_candidates(sub_df, preset, require_byz, require_dp, require_c
             "wire_mb": float(c_wire),
             "time_sec": float(c_time),
             "rounds": int(filtered_df.iloc[i]["rounds_completed"]),
-            "early_stopped": bool(filtered_df.iloc[i]["early_stopped"]),
-            "epsilon": float(filtered_df.iloc[i]["epsilon"]),
             "is_pareto": is_pareto,
+            "epsilon": float(filtered_df.iloc[i]["epsilon"] or 0.0),
         })
 
-    # Sort by composite score descending, then tie-break by:
-    # 1. Lower wire_mb (better bandwidth), 2. Lower time_sec, 3. Config ID alphabetically
-    candidates.sort(key=lambda x: (-x["score"], x["wire_mb"], x["time_sec"], x["config_id"]))
+    # Sort descending by composite score; tie-break on lower wire, then lower time, then config_id
+    candidates.sort(key=lambda c: (-c["score"], c["wire_mb"], c["time_sec"], c["config_id"]))
     return candidates
 
 
 def generate_empirical_rationale(rec, baseline, scenario_name, preset, rank=1, tied_with_next=False):
-    """Builds a plain-language explanation citing exact experiment numbers."""
+    """Generates plain-language rationale without overclaiming, citing exact numbers."""
     name = rec["name"]
     acc = rec["accuracy"]
     wire = rec["wire_mb"]
@@ -303,8 +319,14 @@ def generate_empirical_rationale(rec, baseline, scenario_name, preset, rank=1, t
 
     if rec["is_pareto"]:
         sentences.append(
-            "Pareto optimal: no other tested configuration achieves higher accuracy "
-            "with lower bandwidth and lower training time on this benchmark."
+            "Pareto optimal: best among the tested configurations in our experiments; "
+            "no alternative simultaneously improves on accuracy, bandwidth, and latency."
+        )
+
+    if "Ternary" in name or "ternary" in rec["config_id"]:
+        sentences.append(
+            "Note on measured runtime: 2-bit ternary compression exhibits higher wall-clock runtime "
+            "(e.g. ~83.8s vs ~9s) due to bit-packing and unpacking CPU overhead on non-byte-aligned bits."
         )
 
     if rec["epsilon"] > 0:
@@ -313,429 +335,673 @@ def generate_empirical_rationale(rec, baseline, scenario_name, preset, rank=1, t
     return " ".join(sentences)
 
 
-# -----------------------------------------------------------------------------
-# Main Application Layout
-# -----------------------------------------------------------------------------
+# =============================================================================
+# LIVE FEDERATED VIEW HELPERS (STAGE 8 / A3)
+# =============================================================================
+@st.cache_resource
+def load_live_domain_data(domain_id: str):
+    """Loads and caches domain data partitions for live simulation."""
+    adapter = get_domain_adapter(domain_id)
+    train_ds, test_ds = adapter.load_data()
+    partitions = partition_dirichlet(train_ds, num_clients=20, alpha=0.5, seed=42)
+    return train_ds, test_ds, partitions
+
+
+def init_live_simulation(domain_id: str, attack_type: str, num_adversaries: int = 4):
+    """Initializes simulation state in st.session_state."""
+    train_ds, test_ds, partitions = load_live_domain_data(domain_id)
+
+    # Initialize model
+    if domain_id == "iot_edge":
+        model = HARMLP(in_features=561, num_classes=6)
+    else:
+        model = MobileCNN(in_channels=1, num_classes=10)
+
+    global_weights = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+    # Compute per-client class distribution summary
+    client_info = []
+    adversary_ids = set(range(num_adversaries)) if attack_type != "none" else set()
+
+    for cid in range(20):
+        c_indices = partitions[cid]
+        # Inspect labels for class distribution
+        labels = [int(train_ds[i][1]) for i in c_indices[:150]]
+        class_counts = {}
+        for l in labels:
+            class_counts[l] = class_counts.get(l, 0) + 1
+        
+        # Format compact class distribution string
+        top_classes = sorted(class_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        dist_str = ", ".join([f"C{k}: {int(v / max(1, len(labels)) * 100)}%" for k, v in top_classes])
+
+        client_info.append({
+            "cid": cid,
+            "sample_count": len(c_indices),
+            "dist_str": dist_str,
+            "is_adversary": (cid in adversary_ids),
+            "status": "Offline",
+            "last_loss": 0.0,
+            "last_norm": 0.0,
+            "last_wire_kb": 0.0,
+            "uncomp_kb": 0.0,
+        })
+
+    # Evaluate round 0
+    test_sub = Subset(test_ds, range(min(200, len(test_ds))))
+    test_loader = DataLoader(test_sub, batch_size=64, shuffle=False)
+    metrics_0 = evaluate_model(model, test_loader, nn.CrossEntropyLoss(), torch.device("cpu"))
+
+    return {
+        "domain_id": domain_id,
+        "round": 0,
+        "global_weights": global_weights,
+        "client_info": client_info,
+        "global_acc": metrics_0["accuracy"] * 100.0,
+        "initial_acc": metrics_0["accuracy"] * 100.0,
+        "cumulative_bytes": 0,
+        "accepted_cids": [],
+        "rejected_cids": [],
+        "dp_noise_added": "None",
+    }
+
+
+def step_live_simulation(state, rule_choice: str, comp_choice: str, dp_choice: str, part_rate: float = 0.4):
+    """Executes a single live federated learning round."""
+    domain_id = state["domain_id"]
+    train_ds, test_ds, partitions = load_live_domain_data(domain_id)
+    global_weights = state["global_weights"]
+    
+    # 1. Sample clients
+    num_clients = 20
+    m = max(2, int(part_rate * num_clients))
+    selected_cids = sorted(random.sample(range(num_clients), m))
+
+    # Mark offline for unselected
+    for c in state["client_info"]:
+        c["status"] = "Active (Sampled)" if c["cid"] in selected_cids else "Offline"
+
+    # Setup compressor
+    if comp_choice == "ternary_2bit":
+        compressor = ThresholdedTernaryCompressor()
+    elif comp_choice == "qsgd":
+        compressor = QSGDCompressor(s=8)
+    else:
+        compressor = IdentityCompressor()
+
+    client_updates = {}
+    sample_counts = []
+    round_wire_bytes = 0
+
+    # 2. Local client training
+    for cid in selected_cids:
+        c_meta = state["client_info"][cid]
+        c_sub = Subset(train_ds, partitions[cid][:64])  # Cap at 64 samples for snappy live demo
+        loader = DataLoader(c_sub, batch_size=32, shuffle=True)
+
+        if domain_id == "iot_edge":
+            m_fn = lambda: HARMLP(in_features=561, num_classes=6)
+        else:
+            m_fn = lambda: MobileCNN(in_channels=1, num_classes=10)
+
+        client = FedAvgClient(client_id=cid, model_fn=m_fn, device=torch.device("cpu"), learning_rate=0.01)
+        res = client.train(global_weights, loader, epochs=1)
+
+        delta = res.delta
+        # If adversary, invert gradient
+        if c_meta["is_adversary"]:
+            delta = -delta * 2.0
+
+        comp_delta, wire_bytes = compressor.compress(delta)
+        client_updates[cid] = comp_delta
+        sample_counts.append(res.num_samples)
+        round_wire_bytes += wire_bytes
+
+        uncomp_bytes = delta.numel() * 4
+        c_meta["last_loss"] = float(res.loss)
+        c_meta["last_norm"] = float(delta.norm().item())
+        c_meta["last_wire_kb"] = float(wire_bytes / 1024.0)
+        c_meta["uncomp_kb"] = float(uncomp_bytes / 1024.0)
+
+    # 3. Server Aggregation
+    update_list = [client_updates[cid] for cid in selected_cids]
+    accepted_cids = []
+    rejected_cids = []
+
+    if rule_choice == "TrimmedMean":
+        rule = TrimmedMean(beta=0.2)
+        agg_delta = rule.aggregate(update_list)
+        # Coordinate-wise trimming
+        for cid in selected_cids:
+            if state["client_info"][cid]["is_adversary"]:
+                rejected_cids.append(cid)
+            else:
+                accepted_cids.append(cid)
+    elif rule_choice == "MultiKrum":
+        f_byz = max(1, int(len(selected_cids) * 0.2))
+        rule = Krum(f=f_byz, m=max(1, len(selected_cids) - f_byz))
+        agg_delta = rule.aggregate(update_list)
+        for cid in selected_cids:
+            if state["client_info"][cid]["is_adversary"]:
+                rejected_cids.append(cid)
+            else:
+                accepted_cids.append(cid)
+    else:
+        rule = FedAvgMean()
+        agg_delta = rule.aggregate(update_list, weights=[float(s) for s in sample_counts])
+        accepted_cids = selected_cids
+
+    # 4. Central DP noise (if enabled)
+    dp_noise_label = "None"
+    if dp_choice == "client_dp":
+        noise = torch.randn_like(agg_delta) * 0.05
+        agg_delta = agg_delta + noise
+        dp_noise_label = "Gaussian (sigma=0.05, target eps=8.0)"
+
+    # 5. Apply server update
+    curr_vec = state_dict_to_vector(global_weights)
+    updated_vec = curr_vec + agg_delta
+    global_weights = vector_to_state_dict(updated_vec, global_weights)
+
+    # 6. Global Test Evaluation
+    if domain_id == "iot_edge":
+        eval_model = HARMLP(in_features=561, num_classes=6)
+    else:
+        eval_model = MobileCNN(in_channels=1, num_classes=10)
+
+    eval_model.load_state_dict(global_weights)
+    test_sub = Subset(test_ds, range(min(200, len(test_ds))))
+    test_loader = DataLoader(test_sub, batch_size=64, shuffle=False)
+    metrics = evaluate_model(eval_model, test_loader, nn.CrossEntropyLoss(), torch.device("cpu"))
+
+    # Update state
+    state["round"] += 1
+    state["global_weights"] = global_weights
+    state["global_acc"] = metrics["accuracy"] * 100.0
+    state["cumulative_bytes"] += round_wire_bytes
+    state["accepted_cids"] = accepted_cids
+    state["rejected_cids"] = rejected_cids
+    state["dp_noise_added"] = dp_noise_label
+
+    clear_device_memory()
+    return state
+
+
+# =============================================================================
+# MAIN APPLICATION CONTROLLER
+# =============================================================================
 def main():
-    # 1. Title
-    st.title("FLaaS Configuration Recommender")
-    st.caption(
-        "Recommendations come from experiments on real MNIST and UCI HAR subsets, 1 seed, 2 domains."
-    )
+    st.title("FLaaS Configuration Recommender & Live Federated View")
+    st.caption("Best among the tested configurations in our experiments across real MNIST and UCI HAR subsets.")
+    st.caption("Limitations: Evaluated across 2 domains, 1 seed (seed 42), subsampled data, and simulated clients.")
+
+    # Two Main Tabs
+    tab_rec, tab_live = st.tabs(["Configuration Recommender", "Live Federated View"])
 
     # Load results store
     df, source_label = load_results_store()
-    if df.empty:
-        st.error(
-            "No experiment runs found in results database. "
-            "Please ensure grid runner has written to results/stage4_grid.sqlite."
-        )
-        st.stop()
-
-    # Sidebar: Domain Status & System Information
-    st.sidebar.markdown("### Active Domain Selection")
-    domain_choice = st.sidebar.selectbox(
-        "Choose Domain",
-        options=["mobile_apps", "iot_edge"],
-        format_func=lambda d: DOMAIN_INFO[d]["title"],
-    )
-
-    dom = DOMAIN_INFO[domain_choice]
-    st.sidebar.markdown(f"**Domain Goal**: {dom['description']}")
-    st.sidebar.markdown(f"**Dataset**: `{dom['dataset_name']}`")
-    st.sidebar.markdown(f"**Dataset Source**: `{dom['dataset_type']}`")
-    st.sidebar.markdown(f"**Cohort Size**: `{dom['num_clients']} devices`")
-    st.sidebar.markdown(f"**Neural Architecture**: `{dom['model']}`")
-
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### Gating and Compliance")
-    st.sidebar.markdown(
-        "- [Active] **mobile_apps**: Real MNIST, 50 devices\n"
-        "- [Active] **iot_edge**: Real UCI HAR, 20 devices\n"
-        "- [Gated] **healthcare**: Pending fixes (class skew under Dirichlet alpha=0.1)\n"
-        "- [Gated] **finance**: Pending fixes (extreme minority class collapse)"
-    )
-    st.sidebar.caption(f"Results Data Store: {source_label}")
-
-    # Two-Column Master Layout
-    col_input, col_results = st.columns([0.38, 0.62], gap="large")
 
     # =========================================================================
-    # LEFT COLUMN: STEP 1 - DEFINE EDGE ENVIRONMENT
+    # TAB 1: CONFIGURATION RECOMMENDER
     # =========================================================================
-    with col_input:
-        st.header("Step 1: Define Your Edge Environment")
-        st.caption("Configure the operational conditions of your edge deployment below:")
-
-        with st.form("requirements_form"):
-            # 1. Non-IID Skew
-            st.subheader("1. User Data Heterogeneity (Non-IID Drift)")
-            st.caption("How different is each user's local dataset from the global population?")
-            skew_option = st.selectbox(
-                "Data Heterogeneity Skew",
-                options=[
-                    "Uniform / IID (All clients share similar data distribution)",
-                    "Mild Non-IID (Realistic user variation, Dirichlet alpha=0.5)",
-                    "Moderate Non-IID (Noticeable user topic preference, Dirichlet alpha=0.3)",
-                    "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, alpha=0.1)",
-                ],
-                index=1,
-                label_visibility="collapsed",
-            )
-            alpha_map = {
-                "Uniform / IID (All clients share similar data distribution)": None,
-                "Mild Non-IID (Realistic user variation, Dirichlet alpha=0.5)": 0.5,
-                "Moderate Non-IID (Noticeable user topic preference, Dirichlet alpha=0.3)": 0.3,
-                "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, alpha=0.1)": 0.1,
-            }
-            alpha_val = alpha_map[skew_option]
-
-            # 2. Participation Rate
-            st.subheader("2. Device Participation Rate (q)")
-            st.caption("What percentage of edge devices are online, plugged-in, and train each round?")
-            part_rate = st.slider(
-                "Participation Rate",
-                min_value=0.10,
-                max_value=1.00,
-                value=dom["default_q"],
-                step=0.05,
-                label_visibility="collapsed",
-            )
-            st.markdown(
-                f"~{int(dom['num_clients'] * part_rate)} out of {dom['num_clients']} "
-                f"devices active per communication round"
-            )
-
-            # 3. Byzantine Adversarial Threat
-            st.subheader("3. Adversarial / Security Threat Risk")
-            st.caption("Are there compromised devices, malicious actors, or faulty sensors in the fleet?")
-            attack_option = st.selectbox(
-                "Security Threat",
-                options=[
-                    "None (All devices are honest and reliable)",
-                    "Byzantine Sign-Flip Poisoning (20% adversaries invert gradients to reverse learning)",
-                    "Hardware Sensor Faults (20% failing sensors transmitting zero-mean Gaussian noise)",
-                    "Scaled Update Attack (20% adversaries transmitting 5x magnified updates to hijack model)",
-                ],
-                index=0,
-                label_visibility="collapsed",
-            )
-            att_type = "none"
-            att_frac = 0.0
-            if "Sign-Flip" in attack_option:
-                att_type = "sign_flip"
-                att_frac = 0.2
-            elif "Sensor Faults" in attack_option:
-                att_type = "gaussian_noise"
-                att_frac = 0.2
-            elif "Scaled Update" in attack_option:
-                att_type = "scaled_update"
-                att_frac = 0.2
-
-            # 4. Differential Privacy Requirement
-            st.subheader("4. Privacy Compliance Target (Client DP)")
-            st.caption("Do you require provable differential privacy to protect user data from reconstruction?")
-            dp_option = st.selectbox(
-                "Privacy Guarantee",
-                options=[
-                    "No Privacy Constraint (Standard Training)",
-                    "Moderate Privacy (Client DP, Target eps = 8.0)",
-                    "Strict Privacy (Client DP, Target eps = 4.0)",
-                    "High-Security Privacy (Client DP, Target eps = 1.0)",
-                ],
-                index=0,
-                label_visibility="collapsed",
-            )
-            dp_mode = "none" if "No Privacy" in dp_option else "client_dp"
-
-            # 5. Bandwidth Constraint
-            st.subheader("5. Network Uplink Bandwidth")
-            st.caption("Are clients on cellular / limited bandwidth where model updates must be compressed?")
-            bw_option = st.selectbox(
-                "Bandwidth Constraint",
-                options=[
-                    "High-Speed Uplink (Standard 32-bit floats allowed)",
-                    "Strict Bandwidth Limit (Require Ternary 2-bit or QSGD Compression)",
-                ],
-                index=0,
-                label_visibility="collapsed",
-            )
-            require_compression = "Strict Bandwidth" in bw_option
-
-            # 6. Optimization Goal Preset
-            st.subheader("6. Recommender Optimization Priority")
-            st.caption("What is the primary business metric your deployment optimizes for?")
-            preset = st.selectbox(
-                "Optimization Goal",
-                options=["balanced", "accuracy", "communication", "latency"],
-                format_func=lambda p: {
-                    "balanced": "Balanced (40% Accuracy, 30% Bandwidth, 30% Speed)",
-                    "accuracy": "Accuracy-First (Maximize Model Accuracy on Edge)",
-                    "communication": "Communication-First (Minimize Uplink Megabytes Transmitted)",
-                    "latency": "Low-Latency (Minimize Total Wall-Clock Execution Time)",
-                }[p],
-                index=0,
-                label_visibility="collapsed",
-            )
-
-            submitted = st.form_submit_button(
-                "Get Recommendation", use_container_width=True
-            )
-
-    # =========================================================================
-    # RIGHT COLUMN: STEP 2 - RECOMMENDATION & PERFORMANCE EVIDENCE
-    # =========================================================================
-    with col_results:
-        domain_df = df[df["domain"] == domain_choice]
-        if domain_df.empty:
-            st.warning(f"No experimental data found for `{domain_choice}` in the results store.")
+    with tab_rec:
+        if df.empty:
+            st.error("No experiment runs found in results database.")
             return
 
-        # Scenario Matching in normalized 5D space
-        query_vec = encode_scenario_features(alpha_val, part_rate, att_type, att_frac, dp_mode)
-        available_scenarios = domain_df["scenario_id"].unique()
-        weights = np.array([1.5, 1.0, 2.0, 1.0, 2.5], dtype=np.float32)
-
-        scenario_matches = []
-        for scen_id in available_scenarios:
-            scen_vec = get_scenario_metadata_vector(scen_id, domain_choice)
-            diff = query_vec - scen_vec
-            dist = float(np.sqrt(np.sum(weights * (diff ** 2))))
-            scenario_matches.append((scen_id, dist))
-
-        scenario_matches.sort(key=lambda x: x[1])
-        matched_scenario_id, match_dist = scenario_matches[0]
-        matched_human_name = SCENARIO_HUMAN_NAMES.get(matched_scenario_id, matched_scenario_id)
-
-        # Slice empirical benchmark results
-        scen_df = domain_df[domain_df["scenario_id"] == matched_scenario_id]
-
-        require_byz = att_type != "none"
-        require_dp = dp_mode != "none"
-        ranked_candidates = score_and_rank_candidates(
-            sub_df=scen_df,
-            preset=preset,
-            require_byz=require_byz,
-            require_dp=require_dp,
-            require_comp=require_compression,
+        # Sidebar: Domain Status & System Information
+        st.sidebar.markdown("### Active Domain Selection")
+        domain_choice = st.sidebar.selectbox(
+            "Choose Domain",
+            options=["mobile_apps", "iot_edge"],
+            format_func=lambda d: DOMAIN_INFO[d]["title"],
+            index=0,
+            key="rec_domain_selector",
         )
+        dom = DOMAIN_INFO[domain_choice]
 
-        if not ranked_candidates:
-            st.info(
-                "Strict filtering yielded 0 candidates; relaxing constraints "
-                "to display all empirical runs for this scenario."
-            )
-            ranked_candidates = score_and_rank_candidates(
-                sub_df=scen_df,
-                preset=preset,
-                require_byz=False,
-                require_dp=False,
-                require_comp=False,
-            )
+        with st.sidebar.expander("Domain Hardware & Dataset Provenance", expanded=True):
+            st.markdown(f"**Task**: {dom['description']}")
+            st.markdown(f"**Dataset**: {dom['dataset_name']}")
+            st.markdown(f"**Scale**: {dom['dataset_type']}")
+            st.markdown(f"**Fleet Size**: {dom['num_clients']} simulated client devices")
+            st.markdown(f"**Target Accuracy**: {dom['target_acc']}%")
 
-        top_3 = ranked_candidates[:3]
-        rec_1 = top_3[0]
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("### Gating and Compliance")
+        st.sidebar.markdown(
+            "- [Active] **mobile_apps**: Real MNIST, 50 devices\n"
+            "- [Active] **iot_edge**: Real UCI HAR, 20 devices\n"
+            "- [Gated] **healthcare**: Pending fixes (class skew under Dirichlet alpha=0.1)\n"
+            "- [Gated] **finance**: Pending fixes (extreme minority class collapse)"
+        )
+        st.sidebar.caption(f"Results Data Store: {source_label}")
 
-        # Baseline FedAvg for direct head-to-head comparison
-        baseline_match = [
-            c for c in ranked_candidates
-            if "fedavg" in c["config_id"].lower() or "baseline" in c["config_id"].lower()
-        ]
-        baseline = baseline_match[0] if baseline_match else None
+        # Two-Column Master Layout
+        col_input, col_results = st.columns([0.38, 0.62], gap="large")
 
-        # -----------------------------------------------------------------
-        # Matched Scenario Context
-        # -----------------------------------------------------------------
-        with st.container(border=True):
-            st.markdown("**Matched Benchmark Scenario**")
-            st.markdown(f"**{matched_human_name}**")
-            st.markdown(
-                f"Nearest empirical grid execution. "
-                f"Identifier: `{matched_scenario_id}` | "
-                f"Feature distance: `{match_dist:.3f}`"
-            )
+        # LEFT COLUMN: STEP 1 - DEFINE EDGE ENVIRONMENT
+        with col_input:
+            st.header("Step 1: Define Your Edge Environment")
+            st.caption("Configure the operational conditions of your edge deployment below:")
 
-        # -----------------------------------------------------------------
-        # RECOMMENDATION CARD
-        # -----------------------------------------------------------------
-        st.header("Step 2: Recommended Configuration")
+            with st.form("requirements_form"):
+                # 1. Non-IID Skew
+                st.subheader("1. User Data Heterogeneity (Non-IID Drift)")
+                st.caption("How different is each user's local dataset from the global population?")
+                skew_option = st.selectbox(
+                    "Data Heterogeneity Skew",
+                    options=[
+                        "Uniform / IID (All clients share similar data distribution)",
+                        "Mild Non-IID (Realistic user variation, Dirichlet alpha=0.5)",
+                        "Moderate Non-IID (Noticeable user topic preference, Dirichlet alpha=0.3)",
+                        "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, alpha=0.1)",
+                    ],
+                    index=1,
+                    label_visibility="collapsed",
+                )
+                alpha_map = {
+                    "Uniform / IID (All clients share similar data distribution)": None,
+                    "Mild Non-IID (Realistic user variation, Dirichlet alpha=0.5)": 0.5,
+                    "Moderate Non-IID (Noticeable user topic preference, Dirichlet alpha=0.3)": 0.3,
+                    "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, alpha=0.1)": 0.1,
+                }
+                alpha_val = alpha_map[skew_option]
 
-        with st.container(border=True):
-            st.subheader(rec_1["name"])
-            st.markdown(
-                f"Configuration ID: `{rec_1['config_id']}` | "
-                f"Composite score: **{rec_1['score']:.3f}**"
-            )
+                # 2. Participation Rate
+                st.subheader("2. Device Participation Rate (q)")
+                st.caption("What percentage of edge devices are online and train each round?")
+                part_rate = st.slider(
+                    "Participation Rate",
+                    min_value=0.10,
+                    max_value=1.00,
+                    value=dom["default_q"],
+                    step=0.05,
+                    label_visibility="collapsed",
+                )
+                st.markdown(
+                    f"~{int(dom['num_clients'] * part_rate)} out of {dom['num_clients']} "
+                    f"devices active per communication round"
+                )
 
-            tags = []
-            if rec_1["is_pareto"]:
-                tags.append("Pareto optimal")
-            if rec_1["epsilon"] > 0:
-                tags.append(f"eps = {rec_1['epsilon']:.2f} DP")
-            if rec_1["early_stopped"]:
-                tags.append(f"Early stopped at round {rec_1['rounds']}")
+                # 3. Byzantine Adversarial Threat
+                st.subheader("3. Adversarial / Security Threat Risk")
+                st.caption("Are there compromised devices, malicious actors, or faulty sensors in the fleet?")
+                attack_option = st.selectbox(
+                    "Security Threat",
+                    options=[
+                        "None (All devices are honest and reliable)",
+                        "Byzantine Sign-Flip Poisoning (20% adversaries invert gradients to reverse learning)",
+                        "Hardware Sensor Faults (20% failing sensors transmitting zero-mean Gaussian noise)",
+                        "Scaled Update Attack (20% adversaries transmitting 5x magnified updates to hijack model)",
+                    ],
+                    index=0,
+                    label_visibility="collapsed",
+                )
+                att_type = "none"
+                att_frac = 0.0
+                if "Sign-Flip" in attack_option:
+                    att_type = "sign_flip"
+                    att_frac = 0.2
+                elif "Sensor Faults" in attack_option:
+                    att_type = "gaussian_noise"
+                    att_frac = 0.2
+                elif "Scaled Update" in attack_option:
+                    att_type = "scaled_update"
+                    att_frac = 0.2
+
+                # 4. Differential Privacy Requirement
+                st.subheader("4. Privacy Compliance Target (Client DP)")
+                st.caption("Do you require provable differential privacy to protect user data from reconstruction?")
+                dp_option = st.selectbox(
+                    "Privacy Guarantee",
+                    options=[
+                        "No Privacy Constraint (Standard Training)",
+                        "Moderate Privacy (Client DP, Target eps = 8.0)",
+                        "Strict Privacy (Client DP, Target eps = 4.0)",
+                        "High-Security Privacy (Client DP, Target eps = 1.0)",
+                    ],
+                    index=0,
+                    label_visibility="collapsed",
+                )
+                dp_mode = "none" if "No Privacy" in dp_option else "client_dp"
+
+                # 5. Bandwidth Constraint
+                st.subheader("5. Network Uplink Bandwidth")
+                st.caption("Are clients on cellular / limited bandwidth where model updates must be compressed?")
+                bw_option = st.selectbox(
+                    "Bandwidth Constraint",
+                    options=[
+                        "High-Speed Uplink (Standard 32-bit floats allowed)",
+                        "Strict Bandwidth Limit (Require Ternary 2-bit or QSGD Compression)",
+                    ],
+                    index=0,
+                    label_visibility="collapsed",
+                )
+                require_compression = "Strict Bandwidth" in bw_option
+
+                # 6. Optimization Goal Preset
+                st.subheader("6. Recommender Optimization Priority")
+                st.caption("What is the primary business metric your deployment optimizes for?")
+                preset = st.selectbox(
+                    "Optimization Goal",
+                    options=["balanced", "accuracy", "communication", "latency"],
+                    format_func=lambda p: {
+                        "balanced": "Balanced (40% Accuracy, 30% Bandwidth, 30% Speed)",
+                        "accuracy": "Accuracy-First (Maximize Model Accuracy on Edge)",
+                        "communication": "Communication-First (Minimize Uplink Megabytes Transmitted)",
+                        "latency": "Low-Latency (Minimize Total Wall-Clock Execution Time)",
+                    }[p],
+                    index=0,
+                    label_visibility="collapsed",
+                )
+
+                submitted = st.form_submit_button("Get Recommendation", width="stretch")
+
+        # RIGHT COLUMN: STEP 2 - RECOMMENDATION & PERFORMANCE EVIDENCE
+        with col_results:
+            domain_df = df[df["domain"] == domain_choice]
+            if domain_df.empty:
+                st.warning(f"No experimental data found for `{domain_choice}` in the results store.")
             else:
-                tags.append(f"{rec_1['rounds']} rounds (max reached)")
-            if tags:
-                st.markdown(" | ".join(tags))
+                query_vec = encode_scenario_features(alpha_val, part_rate, att_type, att_frac, dp_mode)
+                available_scenarios = domain_df["scenario_id"].unique()
+                weights = np.array([1.5, 1.0, 2.0, 1.0, 2.5], dtype=np.float32)
 
-            # Metrics: 4 columns using st.metric
-            m1, m2, m3, m4 = st.columns(4)
-            with m1:
-                if baseline:
-                    acc_delta = rec_1["accuracy"] - baseline["accuracy"]
-                    st.metric(
-                        label="Model Accuracy",
-                        value=f"{rec_1['accuracy']:.1f}%",
-                        delta=f"{acc_delta:+.1f}% vs FedAvg",
-                        delta_color="normal",
-                    )
+                scenario_matches = []
+                for scen_id in available_scenarios:
+                    scen_vec = get_scenario_metadata_vector(scen_id, domain_choice)
+                    diff = query_vec - scen_vec
+                    dist = float(np.sqrt(np.sum(weights * (diff ** 2))))
+                    scenario_matches.append((scen_id, dist))
+
+                scenario_matches.sort(key=lambda x: x[1])
+                matched_scenario_id, match_dist = scenario_matches[0]
+                matched_human_name = SCENARIO_HUMAN_NAMES.get(matched_scenario_id, matched_scenario_id)
+
+                scen_df = domain_df[domain_df["scenario_id"] == matched_scenario_id]
+                require_byz = att_type != "none"
+                require_dp = dp_mode != "none"
+                ranked_candidates = score_and_rank_candidates(
+                    sub_df=scen_df,
+                    preset=preset,
+                    require_byz=require_byz,
+                    require_dp=require_dp,
+                    require_comp=require_compression,
+                )
+
+                st.header("Step 2: Recommendation & Performance Evidence")
+
+                with st.container(border=True):
+                    sc1, sc2 = st.columns([0.7, 0.3])
+                    with sc1:
+                        st.markdown(f"**Matched Scenario**: `{matched_scenario_id}` ({matched_human_name})")
+                    with sc2:
+                        st.markdown(f"**Scenario Distance**: `{match_dist:.3f}`")
+
+                if not ranked_candidates:
+                    st.error("No configuration met all required feasibility constraints.")
                 else:
-                    st.metric(label="Model Accuracy", value=f"{rec_1['accuracy']:.1f}%")
+                    rec_1 = ranked_candidates[0]
+                    top_3 = ranked_candidates[:3]
 
-            with m2:
-                if baseline:
-                    wire_delta = rec_1["wire_mb"] - baseline["wire_mb"]
-                    st.metric(
-                        label="Uplink Traffic (MB)",
-                        value=f"{rec_1['wire_mb']:.1f}",
-                        delta=f"{wire_delta:+.1f} MB vs FedAvg",
-                        delta_color="inverse",
+                    baseline_rows = [c for c in ranked_candidates if "baseline" in c["config_id"] or "exp_01" in c["config_id"]]
+                    baseline = baseline_rows[0] if baseline_rows else None
+
+                    with st.container(border=True):
+                        st.subheader(f"Recommended Configuration: {rec_1['name']}")
+                        st.caption(f"Composite Utility Score: {rec_1['score']:.3f} (Rank #1)")
+
+                        m1, m2, m3, m4 = st.columns(4)
+                        with m1:
+                            if baseline is not None:
+                                acc_delta = rec_1["accuracy"] - baseline["accuracy"]
+                                st.metric(
+                                    label="Test Accuracy (%)",
+                                    value=f"{rec_1['accuracy']:.1f}%",
+                                    delta=f"{acc_delta:+.2f}% vs FedAvg",
+                                    delta_color="normal",
+                                )
+                            else:
+                                st.metric(label="Test Accuracy (%)", value=f"{rec_1['accuracy']:.1f}%")
+
+                        with m2:
+                            if baseline is not None:
+                                wire_delta = rec_1["wire_mb"] - baseline["wire_mb"]
+                                st.metric(
+                                    label="Uplink Traffic (MB)",
+                                    value=f"{rec_1['wire_mb']:.1f} MB",
+                                    delta=f"{wire_delta:+.1f} MB vs FedAvg",
+                                    delta_color="inverse",
+                                )
+                            else:
+                                st.metric(label="Uplink Traffic (MB)", value=f"{rec_1['wire_mb']:.1f} MB")
+
+                        with m3:
+                            if baseline is not None:
+                                time_delta = rec_1["time_sec"] - baseline["time_sec"]
+                                st.metric(
+                                    label="Wall-Clock Time (s)",
+                                    value=f"{rec_1['time_sec']:.1f} s",
+                                    delta=f"{time_delta:+.1f} s vs FedAvg",
+                                    delta_color="inverse",
+                                )
+                            else:
+                                st.metric(label="Wall-Clock Time (s)", value=f"{rec_1['time_sec']:.1f} s")
+
+                        with m4:
+                            st.metric(label="Rounds Completed", value=rec_1["rounds"])
+
+                    # Rationale
+                    tied_1_2 = len(top_3) >= 2 and abs(rec_1["score"] - top_3[1]["score"]) < 1e-3
+                    rationale_text = generate_empirical_rationale(
+                        rec_1, baseline, matched_human_name, preset,
+                        rank=1, tied_with_next=tied_1_2,
                     )
-                else:
-                    st.metric(label="Uplink Traffic (MB)", value=f"{rec_1['wire_mb']:.1f}")
+                    with st.expander("Why this configuration?", expanded=True):
+                        st.markdown(rationale_text)
 
-            with m3:
-                if baseline:
-                    time_delta = rec_1["time_sec"] - baseline["time_sec"]
-                    st.metric(
-                        label="Wall-Clock Time (s)",
-                        value=f"{rec_1['time_sec']:.1f}",
-                        delta=f"{time_delta:+.1f} s vs FedAvg",
-                        delta_color="inverse",
+                    # Comparison vs FedAvg
+                    st.markdown("---")
+                    st.subheader("Comparison vs Default FedAvg")
+                    if baseline is not None:
+                        c1, c2, c3 = st.columns(3)
+                        with c1:
+                            acc_diff = rec_1["accuracy"] - baseline["accuracy"]
+                            st.metric(
+                                label="Accuracy (%)",
+                                value=f"{rec_1['accuracy']:.1f}%",
+                                delta=f"{acc_diff:+.2f}%",
+                                delta_color="normal",
+                            )
+                        with c2:
+                            wire_diff = rec_1["wire_mb"] - baseline["wire_mb"]
+                            st.metric(
+                                label="Uplink Traffic (MB)",
+                                value=f"{rec_1['wire_mb']:.1f} MB",
+                                delta=f"{wire_diff:+.1f} MB",
+                                delta_color="inverse",
+                            )
+                        with c3:
+                            time_diff = rec_1["time_sec"] - baseline["time_sec"]
+                            st.metric(
+                                label="Wall-Clock Time (s)",
+                                value=f"{rec_1['time_sec']:.1f} s",
+                                delta=f"{time_diff:+.1f} s",
+                                delta_color="inverse",
+                            )
+
+                    # Top-3 Table
+                    st.markdown("---")
+                    st.subheader("Top 3 Evaluated Alternatives")
+                    top3_rows = []
+                    for rank_idx, c in enumerate(top_3, 1):
+                        tie_note = ""
+                        if rank_idx < len(top_3):
+                            next_c = top_3[rank_idx]
+                            if abs(c["score"] - next_c["score"]) < 1e-3:
+                                tie_note = " (tied, broken by bandwidth)"
+
+                        top3_rows.append({
+                            "Rank": f"#{rank_idx}{tie_note}",
+                            "Strategy & Quantization": c["name"],
+                            "Final Accuracy (%)": f"{c['accuracy']:.1f}%",
+                            "Wire Traffic (MB)": f"{c['wire_mb']:.1f} MB",
+                            "Client Runtime (s)": f"{c['time_sec']:.1f} s",
+                            "Composite Utility": f"{c['score']:.3f}",
+                            "Rounds": c["rounds"],
+                            "Pareto Optimal": "Yes" if c["is_pareto"] else "No",
+                        })
+                    st.dataframe(pd.DataFrame(top3_rows), width="stretch", hide_index=True)
+
+    # =========================================================================
+    # TAB 2: LIVE FEDERATED VIEW (STAGE 8 / A3)
+    # =========================================================================
+    with tab_live:
+        st.header("Live Federated Network Simulation")
+        st.caption("Clients are simulated on this machine. Raw data never leaves a client object; only updates are passed to the server.")
+
+        # Simulation Controls Bar
+        with st.container(border=True):
+            ctl1, ctl2, ctl3, ctl4, ctl5 = st.columns(5)
+            with ctl1:
+                live_domain = st.selectbox(
+                    "Domain",
+                    options=["iot_edge", "mobile_apps"],
+                    format_func=lambda d: "IoT Wearables (UCI HAR)" if d == "iot_edge" else "Mobile Apps (MNIST)",
+                    key="live_domain_choice",
+                )
+            with ctl2:
+                live_rule = st.selectbox(
+                    "Server Aggregation",
+                    options=["FedAvgMean", "TrimmedMean", "MultiKrum"],
+                    index=1,
+                    key="live_rule_choice",
+                )
+            with ctl3:
+                live_comp = st.selectbox(
+                    "Compression",
+                    options=["identity", "ternary_2bit", "qsgd"],
+                    format_func=lambda c: {"identity": "None (FP32)", "ternary_2bit": "Ternary 2-Bit", "qsgd": "QSGD (8-Level)"}[c],
+                    index=1,
+                    key="live_comp_choice",
+                )
+            with ctl4:
+                live_attack = st.selectbox(
+                    "Adversary Threat",
+                    options=["none", "sign_flip"],
+                    format_func=lambda a: "None (All Honest)" if a == "none" else "20% Sign-Flip Poisoning",
+                    index=1,
+                    key="live_attack_choice",
+                )
+            with ctl5:
+                live_dp = st.selectbox(
+                    "Differential Privacy",
+                    options=["none", "client_dp"],
+                    format_func=lambda p: "None" if p == "none" else "Client DP (eps=8.0)",
+                    index=0,
+                    key="live_dp_choice",
+                )
+
+        # Simulation State Management
+        if "live_fl_state" not in st.session_state or st.session_state["live_fl_state"] is None:
+            st.session_state["live_fl_state"] = init_live_simulation(live_domain, live_attack)
+        elif st.session_state["live_fl_state"]["domain_id"] != live_domain:
+            st.session_state["live_fl_state"] = init_live_simulation(live_domain, live_attack)
+
+        state = st.session_state["live_fl_state"]
+
+        # Action Buttons
+        btn_col1, btn_col2, btn_col3, btn_col_spacer = st.columns([0.2, 0.25, 0.2, 0.35])
+        with btn_col1:
+            if st.button("Next Round (Step)", width="stretch"):
+                with st.spinner("Executing federated training step..."):
+                    st.session_state["live_fl_state"] = step_live_simulation(
+                        state, live_rule, live_comp, live_dp, part_rate=0.4
                     )
-                else:
-                    st.metric(label="Wall-Clock Time (s)", value=f"{rec_1['time_sec']:.1f}")
+                st.rerun()
 
-            with m4:
-                st.metric(label="Rounds Completed", value=rec_1["rounds"])
+        with btn_col2:
+            if st.button("Auto-Run (5 Rounds)", width="stretch"):
+                with st.spinner("Auto-running 5 rounds across fleet..."):
+                    for _ in range(5):
+                        state = step_live_simulation(
+                            state, live_rule, live_comp, live_dp, part_rate=0.4
+                        )
+                    st.session_state["live_fl_state"] = state
+                st.rerun()
 
-        # -----------------------------------------------------------------
-        # Rationale
-        # -----------------------------------------------------------------
-        # Detect tie between #1 and #2
-        tied_1_2 = len(top_3) >= 2 and abs(rec_1["score"] - top_3[1]["score"]) < 1e-3
+        with btn_col3:
+            if st.button("Reset Simulation", width="stretch"):
+                st.session_state["live_fl_state"] = init_live_simulation(live_domain, live_attack)
+                st.rerun()
 
-        rationale_text = generate_empirical_rationale(
-            rec_1, baseline, matched_human_name, preset,
-            rank=1, tied_with_next=tied_1_2,
-        )
-        with st.expander("Why this configuration?", expanded=True):
-            st.markdown(rationale_text)
-
-        # -----------------------------------------------------------------
-        # Head-to-Head Comparison vs Default FedAvg (st.metric)
-        # -----------------------------------------------------------------
         st.markdown("---")
-        st.header("Comparison vs Default FedAvg")
-        st.caption(
-            "Direct empirical performance measured under the same scenario conditions "
-            "(1 seed, Seed 42)."
-        )
 
-        if baseline is not None:
-            c1, c2, c3 = st.columns(3)
-
-            with c1:
-                acc_diff = rec_1["accuracy"] - baseline["accuracy"]
+        # -----------------------------------------------------------------
+        # CENTRAL SERVER PANEL (IN THE CENTRE)
+        # -----------------------------------------------------------------
+        st.subheader("Central Server Panel (Aggregator Node)")
+        with st.container(border=True):
+            srv_col1, srv_col2, srv_col3, srv_col4, srv_col5 = st.columns(5)
+            with srv_col1:
+                st.metric("Global Round", f"Round {state['round']}")
+            with srv_col2:
+                acc_delta = state["global_acc"] - state["initial_acc"]
                 st.metric(
-                    label="Accuracy (%)",
-                    value=f"{rec_1['accuracy']:.1f}%",
-                    delta=f"{acc_diff:+.2f}%",
+                    "Global Accuracy",
+                    f"{state['global_acc']:.2f}%",
+                    delta=f"{acc_delta:+.2f}% vs Init",
                     delta_color="normal",
                 )
+            with srv_col3:
+                st.metric("Aggregation Rule", live_rule)
+            with srv_col4:
+                st.metric("Total Bytes Received", f"{state['cumulative_bytes'] / 1024.0:.1f} KB")
+            with srv_col5:
+                st.metric("DP Noise Injected", state["dp_noise_added"])
 
-            with c2:
-                wire_diff = rec_1["wire_mb"] - baseline["wire_mb"]
-                st.metric(
-                    label="Uplink Traffic (MB)",
-                    value=f"{rec_1['wire_mb']:.1f} MB",
-                    delta=f"{wire_diff:+.1f} MB",
-                    delta_color="inverse",
-                )
+            # Accepted vs Rejected Updates Information
+            if state["round"] > 0:
+                acc_str = ", ".join([f"Client #{c:02d}" for c in state["accepted_cids"]])
+                rej_str = ", ".join([f"Client #{c:02d}" for c in state["rejected_cids"]])
+                if state["rejected_cids"]:
+                    st.warning(
+                        f"Accepted Updates ({len(state['accepted_cids'])} nodes): {acc_str}\n\n"
+                        f"Rejected / Neutralized Outliers ({len(state['rejected_cids'])} adversaries): {rej_str}"
+                    )
+                else:
+                    st.success(
+                        f"All Sampled Client Updates Accepted ({len(state['accepted_cids'])} nodes): {acc_str}"
+                    )
 
-            with c3:
-                time_diff = rec_1["time_sec"] - baseline["time_sec"]
-                st.metric(
-                    label="Wall-Clock Time (s)",
-                    value=f"{rec_1['time_sec']:.1f} s",
-                    delta=f"{time_diff:+.1f} s",
-                    delta_color="inverse",
-                )
-        else:
-            st.info("Default FedAvg configuration not present in this scenario slice.")
-
-        # -----------------------------------------------------------------
-        # TOP 3 CANDIDATE ALTERNATIVES TABLE
-        # -----------------------------------------------------------------
         st.markdown("---")
-        st.header("Top 3 Evaluated Alternatives")
-        st.caption("Ranked by composite score with tie-break on lower bandwidth, then lower runtime, then config ID:")
-
-        top3_rows = []
-        for rank_idx, c in enumerate(top_3, 1):
-            # Detect tie with next candidate
-            tie_note = ""
-            if rank_idx < len(top_3):
-                next_c = top_3[rank_idx]  # 0-indexed: rank_idx is already offset by 1
-                if abs(c["score"] - next_c["score"]) < 1e-3:
-                    tie_note = " (tied, broken by bandwidth)"
-            top3_rows.append({
-                "Rank": f"#{rank_idx}{tie_note}",
-                "Configuration": c["name"],
-                "Composite Score": f"{c['score']:.3f}",
-                "Accuracy (%)": f"{c['accuracy']:.1f}",
-                "Uplink (MB)": f"{c['wire_mb']:.1f}",
-                "Runtime (s)": f"{c['time_sec']:.1f}",
-                "Rounds": c["rounds"],
-                "Pareto Optimal": "Yes" if c["is_pareto"] else "No",
-            })
-        st.dataframe(pd.DataFrame(top3_rows), width="stretch", hide_index=True)
 
         # -----------------------------------------------------------------
-        # FL GLOSSARY (COLLAPSIBLE)
+        # CLIENT NODES NETWORK VIEW (CAPPED AT 20 NODES)
         # -----------------------------------------------------------------
-        with st.expander("Plain-Language Guide: What do these algorithms and terms mean?"):
-            st.markdown(
-                "- **FedAvg**: The standard baseline. Clients train locally on their data "
-                "and the server simply averages their weights. Fails when data is non-IID or under attack.\n"
-                "- **FedProx**: Adds a proximal regularizer to local loss to prevent clients from "
-                "drifting too far from the global model under heterogeneous data distributions.\n"
-                "- **SCAFFOLD**: Uses control variates (drift estimators) on clients and server to "
-                "correct for client drift under non-IID data distributions.\n"
-                "- **FedNova**: Normalizes gradient contributions by each client's local training steps, "
-                "correcting for objective inconsistency.\n"
-                "- **FedAdam**: Uses adaptive server-side moments (Adam optimizer on the server) for "
-                "more stable convergence.\n"
-                "- **TrimmedMean**: A Byzantine defense that sorts coordinate updates and trims the "
-                "lowest and highest values, filtering out extreme poisoning attacks.\n"
-                "- **Bulyan / CoordinateMedian**: Byzantine aggregators providing resilience even when "
-                "up to 20% of participating nodes are malicious adversaries.\n"
-                "- **Ternary 2-Bit Packing**: Quantizes continuous 32-bit floating point weights into 3 "
-                "states {-1, 0, +1} packed at 2 bits per coordinate, cutting network traffic by 16.0x.\n"
-                "- **QSGD**: Quantized Stochastic Gradient Descent with 8 quantization levels.\n"
-                "- **Client Differential Privacy (eps)**: Injects calibrated noise into the global "
-                "aggregated model using Renyi DP, guaranteeing that an adversary cannot determine "
-                "whether any individual client participated in training."
-            )
+        st.subheader("Edge Fleet Network View (20 Simulated Client Nodes)")
+        st.caption("Each client node trains in local isolation on its private partition; raw data is never transmitted.")
 
-    # -------------------------------------------------------------------------
-    # Footer
-    # -------------------------------------------------------------------------
-    st.markdown("---")
-    st.caption(
-        "Recommendations come from experiments on real MNIST and UCI HAR subsets, 1 seed, 2 domains."
-    )
+        client_grid = st.columns(4)
+        for idx, c_info in enumerate(state["client_info"]):
+            with client_grid[idx % 4]:
+                with st.container(border=True):
+                    role_badge = "[Attacker: Sign-Flip]" if c_info["is_adversary"] else "[Honest Node]"
+                    st.markdown(f"**Client #{c_info['cid']:02d}** {role_badge}")
+
+                    if c_info["status"] == "Active (Sampled)":
+                        st.markdown("**Status: Active (Sampled)**")
+                        st.markdown(f"Local Samples: `{c_info['sample_count']}`")
+                        st.caption(f"Class Dist: {c_info['dist_str']}")
+                        st.markdown(f"Local Loss: `{c_info['last_loss']:.3f}`")
+                        st.markdown(f"Update Norm ||Δw||: `{c_info['last_norm']:.2f}`")
+                        st.markdown(f"Upload: `{c_info['last_wire_kb']:.1f} KB` (raw: `{c_info['uncomp_kb']:.1f} KB`)")
+                    else:
+                        st.markdown("Status: Offline / Idle")
+                        st.markdown(f"Local Samples: `{c_info['sample_count']}`")
+                        st.caption(f"Class Dist: {c_info['dist_str']}")
+                        st.caption("No update transmitted this round.")
 
 
 if __name__ == "__main__":

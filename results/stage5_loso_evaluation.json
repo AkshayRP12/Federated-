@@ -5,10 +5,10 @@
     "num_scenarios_evaluated": 16,
     "summary_by_method": {
       "Recommender_Proposed": {
-        "mean_accuracy": 84.9725,
-        "mean_regret": 1.724375000000001,
-        "mean_rank": 3.1875,
-        "std_accuracy": 3.588867335246594
+        "mean_accuracy": 85.2175,
+        "mean_regret": 1.479375000000001,
+        "mean_rank": 2.625,
+        "std_accuracy": 3.6833977181401396
       },
       "Baseline_Default_FedAvg": {
         "mean_accuracy": 74.72375,
@@ -91,8 +91,8 @@
         "scenario_name": "Partial Participation Moderate (50%)",
         "optimal_config": "cfg_06_ternary_compression",
         "optimal_acc": 85.96000000000001,
-        "rec_chosen": "cfg_01_baseline",
-        "rec_acc": 85.24000000000001,
+        "rec_chosen": "cfg_06_ternary_compression",
+        "rec_acc": 85.96000000000001,
         "fedavg_acc": 85.24000000000001,
         "rule_chosen": "cfg_01_baseline",
         "rule_acc": 85.24000000000001
@@ -102,8 +102,8 @@
         "scenario_name": "Partial Participation Mobile (20%)",
         "optimal_config": "cfg_06_ternary_compression",
         "optimal_acc": 88.3,
-        "rec_chosen": "cfg_04_trimmed_mean",
-        "rec_acc": 85.1,
+        "rec_chosen": "cfg_06_ternary_compression",
+        "rec_acc": 88.3,
         "fedavg_acc": 87.44,
         "rule_chosen": "cfg_06_ternary_compression",
         "rule_acc": 88.3
@@ -227,10 +227,10 @@
     "num_scenarios_evaluated": 16,
     "summary_by_method": {
       "Recommender_Proposed": {
-        "mean_accuracy": 69.89523243976925,
-        "mean_regret": 3.9446895147607743,
-        "mean_rank": 2.25,
-        "std_accuracy": 17.22504851442365
+        "mean_accuracy": 66.96852731591449,
+        "mean_regret": 6.8713946386155405,
+        "mean_rank": 3.3125,
+        "std_accuracy": 18.49608339879553
       },
       "Baseline_Default_FedAvg": {
         "mean_accuracy": 63.397098744485916,
@@ -269,8 +269,8 @@
         "scenario_name": "Standard Clean IID",
         "optimal_config": "cfg_02_fedprox",
         "optimal_acc": 88.46284356973193,
-        "rec_chosen": "cfg_01_baseline",
-        "rec_acc": 88.36104513064133,
+        "rec_chosen": "cfg_08_domain_optimal",
+        "rec_acc": 86.49474041398032,
         "fedavg_acc": 88.36104513064133,
         "rule_chosen": "cfg_01_baseline",
         "rule_acc": 88.36104513064133
@@ -280,8 +280,8 @@
         "scenario_name": "Mild Non-IID",
         "optimal_config": "cfg_01_baseline",
         "optimal_acc": 87.03766542246352,
-        "rec_chosen": "cfg_01_baseline",
-        "rec_acc": 87.03766542246352,
+        "rec_chosen": "cfg_06_ternary_compression",
+        "rec_acc": 84.1873091279267,
         "fedavg_acc": 87.03766542246352,
         "rule_chosen": "cfg_01_baseline",
         "rule_acc": 87.03766542246352
@@ -291,8 +291,8 @@
         "scenario_name": "Moderate Non-IID",
         "optimal_config": "cfg_01_baseline",
         "optimal_acc": 87.17339667458432,
-        "rec_chosen": "cfg_01_baseline",
-        "rec_acc": 87.17339667458432,
+        "rec_chosen": "cfg_08_domain_optimal",
+        "rec_acc": 81.4048184594503,
         "fedavg_acc": 87.17339667458432,
         "rule_chosen": "cfg_01_baseline",
         "rule_acc": 87.17339667458432
@@ -324,8 +324,8 @@
         "scenario_name": "Partial Participation Mobile (20%)",
         "optimal_config": "cfg_01_baseline",
         "optimal_acc": 80.01357312521208,
-        "rec_chosen": "cfg_01_baseline",
-        "rec_acc": 80.01357312521208,
+        "rec_chosen": "cfg_08_domain_optimal",
+        "rec_acc": 59.61995249406176,
         "fedavg_acc": 80.01357312521208,
         "rule_chosen": "cfg_06_ternary_compression",
         "rule_acc": 59.61995249406176
@@ -335,8 +335,8 @@
         "scenario_name": "Extreme Heterogeneity & Mobile Participation",
         "optimal_config": "cfg_06_ternary_compression",
         "optimal_acc": 45.77536477774007,
-        "rec_chosen": "cfg_01_baseline",
-        "rec_acc": 43.196470987444854,
+        "rec_chosen": "cfg_08_domain_optimal",
+        "rec_acc": 45.77536477774007,
         "fedavg_acc": 43.196470987444854,
         "rule_chosen": "cfg_02_fedprox",
         "rule_acc": 41.22836783169325
@@ -434,8 +434,8 @@
         "scenario_name": "Compound Challenge: Skew + Attack + Privacy",
         "optimal_config": "cfg_05_krum_bulyan",
         "optimal_acc": 47.06481167288768,
-        "rec_chosen": "cfg_01_baseline",
-        "rec_acc": 43.73939599592806,
+        "rec_chosen": "cfg_08_domain_optimal",
+        "rec_acc": 25.212080081438753,
         "fedavg_acc": 43.73939599592806,
         "rule_chosen": "cfg_04_trimmed_mean",
         "rule_acc": 40.38004750593824
