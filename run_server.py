@@ -366,8 +366,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
                   <span style="color: #16a34a; font-size: 0.8rem;">Update Accepted</span>
                 </div>
                 <div class="client-details">
-                  Wire Size: <strong>${details.wire_kb} KB</strong> | Samples: ${details.num_samples}<br>
-                  Local Loss: <strong>${details.loss}</strong>
+                  Gradient &Delta;w: <strong>${details.wire_kb} KB</strong> (${details.delta_norm ? '||&Delta;w||=' + details.delta_norm : '105,962 weights'})<br>
+                  Weights Preview: <code style="background: #e2e8f0; padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">[${details.preview ? details.preview.join(', ') : '...'}]</code><br>
+                  Local Loss: <strong>${details.loss}</strong> (${details.num_samples} samples)
                 </div>
               </div>`;
           } else {
@@ -431,6 +432,8 @@ def get_info():
             "wire_bytes": u["wire_bytes"],
             "wire_kb": round(u["wire_bytes"] / 1024.0, 2),
             "loss": round(float(u["loss"]), 4),
+            "delta_norm": round(float(u.get("delta_norm", 0.0)), 4),
+            "preview": u.get("preview", []),
         }
     return {
         "status": "completed" if context.is_completed else "training",
@@ -485,15 +488,22 @@ def upload_update(payload: UpdatePayload):
     np_arr = np.frombuffer(raw_bytes, dtype=np.float32).copy()
     flat_arr = torch.from_numpy(np_arr)
 
+    delta_norm = float(torch.norm(flat_arr).item())
+    sample_preview = [round(float(v), 5) for v in flat_arr[:4].tolist()]
     size_kb = payload.wire_bytes / 1024.0
+
     print(
-        f"[SERVER] Received update from Client #{payload.client_id:02d} "
-        f"(Round {payload.round_idx}): {size_kb:.2f} KB | {payload.num_samples} samples | Loss: {payload.loss:.4f}",
+        f"[SERVER] Received Gradient Update from Client #{payload.client_id:02d} (Round {payload.round_idx}):\n"
+        f"         - Payload Type: Neural Network Parameter Gradient (Δw, {flat_arr.numel()} weights)\n"
+        f"         - Gradient L2 Norm: {delta_norm:.4f} | Preview: {sample_preview}\n"
+        f"         - Wire Size: {size_kb:.2f} KB | Local Samples: {payload.num_samples} | Loss: {payload.loss:.4f}",
         flush=True,
     )
 
     context.round_buffer[payload.client_id] = {
         "delta": flat_arr,
+        "delta_norm": delta_norm,
+        "preview": sample_preview,
         "num_samples": payload.num_samples,
         "wire_bytes": payload.wire_bytes,
         "loss": payload.loss,

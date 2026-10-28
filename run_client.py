@@ -125,13 +125,21 @@ def run_client(
             delta_bytes = comp_delta.numpy().tobytes()
             delta_b64 = base64.b64encode(delta_bytes).decode("utf-8")
 
+            # Compute gradient norm & sample slice for demonstration
+            delta_norm = float(torch.norm(res.delta).item())
+            sample_vals = [round(float(v), 5) for v in res.delta[:4].tolist()]
+
             print(
                 f"    [CLIENT #{client_id:02d}] Training finished in {t_train_duration:.2f}s | "
-                f"Local Loss: {res.loss:.4f}",
+                f"Local Loss: {res.loss:.4f} | Gradient ||Δw||: {delta_norm:.4f}",
                 flush=True,
             )
             print(
-                f"    [CLIENT #{client_id:02d}] Uploading parameter update ({wire_kb:.2f} KB) to server...",
+                f"    [CLIENT #{client_id:02d}] Model Gradient Vector Preview (first 4 of 105,962 weights): {sample_vals}",
+                flush=True,
+            )
+            print(
+                f"    [CLIENT #{client_id:02d}] Uploading parameter gradient update ({wire_kb:.2f} KB) to server (NO raw images)...",
                 flush=True,
             )
 

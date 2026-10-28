@@ -1087,10 +1087,11 @@ def main():
                             st.markdown(f"**Client #{cid:02d}**")
                             if cid in rep_clients:
                                 c_stat = client_details.get(str(cid), client_details.get(cid, {}))
-                                st.markdown("Status: **Update Received**")
+                                st.markdown("Status: **Update Accepted**")
                                 if c_stat:
-                                    st.caption(f"Upload: `{c_stat.get('wire_kb', 0)} KB`")
-                                    st.caption(f"Loss: `{c_stat.get('loss', 0)}`")
+                                    st.caption(f"Gradient: `{c_stat.get('wire_kb', 0)} KB` (||&Delta;w||={c_stat.get('delta_norm', 0)})")
+                                    st.caption(f"Preview: `{c_stat.get('preview', [])[:3]}...`")
+                                    st.caption(f"Loss: `{c_stat.get('loss', 0)}` on {c_stat.get('num_samples', 0)} samples")
                             else:
                                 st.markdown("Status: Waiting...")
                                 st.caption(f"Partition: client_{cid}/data.pt")
