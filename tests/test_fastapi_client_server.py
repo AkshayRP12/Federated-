@@ -19,7 +19,16 @@ def test_fastapi_server_endpoints_and_aggregation():
     app = create_app(target_rounds=2, min_clients=2, rule_name="FedAvgMean")
     client = TestClient(app)
 
-    # 1. Test /info endpoint
+    # 1. Test / and /dashboard HTML endpoints
+    root_resp = client.get("/")
+    assert root_resp.status_code == 200
+    assert "FLaaS Central Aggregation Server" in root_resp.text
+
+    dash_resp = client.get("/dashboard")
+    assert dash_resp.status_code == 200
+    assert "Active Round Ingestion Tracker" in dash_resp.text
+
+    # 2. Test /info endpoint
     info_resp = client.get("/info")
     assert info_resp.status_code == 200
     info = info_resp.json()
@@ -27,7 +36,7 @@ def test_fastapi_server_endpoints_and_aggregation():
     assert info["min_clients"] == 2
     assert info["status"] == "training"
 
-    # 2. Test /model endpoint
+    # 3. Test /model endpoint
     model_resp = client.get("/model")
     assert model_resp.status_code == 200
     model_data = model_resp.json()

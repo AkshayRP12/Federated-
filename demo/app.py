@@ -16,6 +16,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
+import requests
 import streamlit as st
 
 from flaas.data.domain_adapters import get_domain_adapter
@@ -536,8 +537,10 @@ def main():
     st.caption("Best among the tested configurations in our experiments across real MNIST and UCI HAR subsets.")
     st.caption("Limitations: Evaluated across 2 domains, 1 seed (seed 42), subsampled data, and simulated clients.")
 
-    # Two Main Tabs
-    tab_rec, tab_live = st.tabs(["Configuration Recommender", "Live Federated View"])
+    # Main Tabs
+    tab_rec, tab_live, tab_server = st.tabs(
+        ["Configuration Recommender", "Live Federated View", "Central Server Monitor (Part B)"]
+    )
 
     # Load results store
     df, source_label = load_results_store()
@@ -1010,6 +1013,107 @@ def main():
                         st.markdown(f"Local Samples: `{c_info['sample_count']}`")
                         st.caption(f"Class Dist: {c_info['dist_str']}")
                         st.caption("No update transmitted this round.")
+
+        st.caption("Live view uses a lightweight run (capped local steps); numbers differ from the stored benchmark.")
+
+    # =========================================================================
+    # TAB 3: CENTRAL SERVER MONITOR (PART B)
+    # =========================================================================
+    with tab_server:
+        st.subheader("Decentralized Central Server Monitor (FastAPI)")
+        st.caption("Monitors the physical FastAPI central server coordinating autonomous edge processes on port 8000.")
+
+        # Check connection to server
+        server_url = "http://127.0.0.1:8000"
+        server_info = None
+        try:
+            r = requests.get(f"{server_url}/info", timeout=1.0)
+            if r.status_code == 200:
+                server_info = r.json()
+        except Exception:
+            server_info = None
+
+        col_top_a, col_top_b = st.columns([3, 1])
+        with col_top_a:
+            if server_info:
+                st.success(f"Central Server is ONLINE at {server_url}")
+            else:
+                st.warning(f"Central Server is OFFLINE on Port 8000")
+        with col_top_b:
+            if st.button("Refresh Server Status", key="refresh_server_btn"):
+                st.rerun()
+
+        if not server_info:
+            with st.container(border=True):
+                st.markdown("#### How to Start the Central Server & Clients")
+                st.markdown(
+                    "The central server coordinates distributed training across autonomous client processes. "
+                    "Start it using either method below:"
+                )
+                st.markdown("**Option A: One-Click Fleet (Server + 3 Clients)**")
+                st.code("python scripts/launch_demo_fleet.py", language="powershell")
+                st.markdown("**Option B: Manual Central Server Process**")
+                st.code("python run_server.py --port 8000 --rounds 3 --min-clients 3 --rule FedAvgMean", language="powershell")
+                st.markdown(
+                    "You can also open the server's dedicated browser dashboard directly at: "
+                    "[http://localhost:8000](http://localhost:8000)"
+                )
+        else:
+            with st.container(border=True):
+                st.markdown("### Server Operational Overview")
+                m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+                with m_col1:
+                    st.metric("Current Round", f"{server_info['current_round']} / {server_info['target_rounds']}")
+                with m_col2:
+                    st.metric("Global Test Accuracy", f"{server_info['global_accuracy']:.2f}%")
+                with m_col3:
+                    st.metric("Aggregation Rule", server_info["rule"])
+                with m_col4:
+                    st.metric("Required Cohort", f"{server_info['min_clients']} clients/round")
+
+                # Ingestion tracker
+                rep_clients = server_info.get("clients_reported_this_round", [])
+                needed = server_info.get("min_clients", 3)
+                pct = min(1.0, len(rep_clients) / max(1, needed))
+                st.markdown(f"**Round {server_info['current_round']} Ingestion Progress: {len(rep_clients)} / {needed} clients**")
+                st.progress(pct)
+
+                # Client slots
+                client_details = server_info.get("client_details", {})
+                c_cols = st.columns(needed)
+                for cid in range(needed):
+                    with c_cols[cid]:
+                        with st.container(border=True):
+                            st.markdown(f"**Client #{cid:02d}**")
+                            if cid in rep_clients:
+                                c_stat = client_details.get(str(cid), client_details.get(cid, {}))
+                                st.markdown("Status: **Update Received**")
+                                if c_stat:
+                                    st.caption(f"Upload: `{c_stat.get('wire_kb', 0)} KB`")
+                                    st.caption(f"Loss: `{c_stat.get('loss', 0)}`")
+                            else:
+                                st.markdown("Status: Waiting...")
+                                st.caption(f"Partition: client_{cid}/data.pt")
+
+            # Round history
+            history = server_info.get("round_history", [])
+            if history:
+                st.markdown("### Historical Rounds Aggregation")
+                hist_data = []
+                for h in history:
+                    hist_data.append({
+                        "Round": f"Round {h['round']}",
+                        "Participating Clients": ", ".join([f"Client #{c:02d}" for c in h["clients"]]),
+                        "Mean Client Loss": f"{h['loss']:.4f}",
+                        "Global Test Accuracy": f"{h['accuracy']:.2f}%",
+                        "Total Uplink Traffic": f"{h['wire_kb']:.2f} KB",
+                    })
+                st.dataframe(pd.DataFrame(hist_data), use_container_width=True)
+
+            st.markdown(
+                "Direct Web Dashboard: [Open Server Control Panel (http://localhost:8000)](http://localhost:8000) | "
+                "[OpenAPI / Swagger Docs](http://localhost:8000/docs)"
+            )
 
 
 if __name__ == "__main__":
