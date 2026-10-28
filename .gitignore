@@ -27,6 +27,13 @@ wheels/
 *.pt
 *.pth
 
+# Allow pre-trained model checkpoints and lightweight demo partitions
+!checkpoints/*.pt
+!data/partitions/
+!data/partitions/**
+!data/uci_har/uci_har_preprocessed.pt
+!data/fraud/creditcard_preprocessed.pt
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -39,7 +46,16 @@ wheels/
 htmlcov/
 
 # Results & Cache (raw bulky run traces if uncommitted)
-data/
+data/*
+!data/partitions/
+!data/partitions/**
+!data/uci_har/
+!data/uci_har/uci_har_preprocessed.pt
+data/uci_har/UCI HAR Dataset/
+data/uci_har/__MACOSX/
+!data/fraud/
+!data/fraud/creditcard_preprocessed.pt
+data/fraud/*.csv
 data_cache/
 *.parquet.tmp
 results/test_grid.*
