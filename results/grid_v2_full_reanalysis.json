@@ -1,0 +1,944 @@
+{
+  "mobile_apps": {
+    "domain_id": "mobile_apps",
+    "target_accuracy": 73.3,
+    "target_justification": "85% of clean IID scenario max accuracy (73.3%)",
+    "summary_by_method": {
+      "Recommender_Proposed": {
+        "mean_acc": 73.14285714285714,
+        "success_rate_pct": 71.42857142857143,
+        "mean_uplink_mb": 42.570616722106934,
+        "mean_sim_time_sec": 19.06540755713026,
+        "mean_regret": 5.674285714285718,
+        "privacy_satisfaction_pct": 100.0,
+        "bandwidth_satisfaction_pct": 100.0,
+        "robustness_satisfaction_pct": 100.0
+      },
+      "Baseline_Default_FedAvg": {
+        "mean_acc": 75.23857142857142,
+        "success_rate_pct": 71.42857142857143,
+        "mean_uplink_mb": 55.896876743861604,
+        "mean_sim_time_sec": 15.917504142853431,
+        "mean_regret": 3.5785714285714287,
+        "privacy_satisfaction_pct": 85.71428571428571,
+        "bandwidth_satisfaction_pct": 85.71428571428571,
+        "robustness_satisfaction_pct": 71.42857142857143
+      },
+      "Baseline_Random_Pick": {
+        "mean_acc": 51.495625000000004,
+        "success_rate_pct": 42.857142857142854,
+        "mean_uplink_mb": 55.12530104603086,
+        "mean_sim_time_sec": 118.95238942767901,
+        "mean_regret": 27.321517857142855,
+        "privacy_satisfaction_pct": 89.28571428571429,
+        "bandwidth_satisfaction_pct": 89.28571428571429,
+        "robustness_satisfaction_pct": 78.57142857142857
+      },
+      "Baseline_Handwritten_Rule": {
+        "mean_acc": 76.16571428571429,
+        "success_rate_pct": 85.71428571428571,
+        "mean_uplink_mb": 52.30590534210205,
+        "mean_sim_time_sec": 18.289788885707303,
+        "mean_regret": 2.65142857142857,
+        "privacy_satisfaction_pct": 100.0,
+        "bandwidth_satisfaction_pct": 100.0,
+        "robustness_satisfaction_pct": 100.0
+      },
+      "Baseline_Domain_Blind": {
+        "mean_acc": 74.62571428571428,
+        "success_rate_pct": 71.42857142857143,
+        "mean_uplink_mb": 53.587088448660715,
+        "mean_sim_time_sec": 16.856014514283743,
+        "mean_regret": 4.19142857142857,
+        "privacy_satisfaction_pct": 85.71428571428571,
+        "bandwidth_satisfaction_pct": 85.71428571428571,
+        "robustness_satisfaction_pct": 71.42857142857143
+      },
+      "Baseline_Simple_KNN": {
+        "mean_acc": 75.18714285714285,
+        "success_rate_pct": 71.42857142857143,
+        "mean_uplink_mb": 58.2066650390625,
+        "mean_sim_time_sec": 29.887767514280444,
+        "mean_regret": 3.630000000000002,
+        "privacy_satisfaction_pct": 85.71428571428571,
+        "bandwidth_satisfaction_pct": 85.71428571428571,
+        "robustness_satisfaction_pct": 85.71428571428571
+      }
+    },
+    "pairwise_vs_recommender": {
+      "Baseline_Default_FedAvg": {
+        "wins": 1,
+        "ties": 2,
+        "losses": 4,
+        "mean_diff": -2.095714285714289,
+        "bootstrap_95_ci": [
+          -7.358571428571433,
+          1.855714285714283
+        ]
+      },
+      "Baseline_Random_Pick": {
+        "wins": 7,
+        "ties": 0,
+        "losses": 0,
+        "mean_diff": 21.64723214285714,
+        "bootstrap_95_ci": [
+          15.505446428571423,
+          26.650089285714277
+        ]
+      },
+      "Baseline_Handwritten_Rule": {
+        "wins": 0,
+        "ties": 3,
+        "losses": 4,
+        "mean_diff": -3.022857142857148,
+        "bootstrap_95_ci": [
+          -7.7457142857142935,
+          -0.26142857142857323
+        ]
+      },
+      "Baseline_Domain_Blind": {
+        "wins": 1,
+        "ties": 0,
+        "losses": 6,
+        "mean_diff": -1.4828571428571473,
+        "bootstrap_95_ci": [
+          -3.608571428571431,
+          0.21571428571427834
+        ]
+      },
+      "Baseline_Simple_KNN": {
+        "wins": 2,
+        "ties": 0,
+        "losses": 5,
+        "mean_diff": -2.044285714285716,
+        "bootstrap_95_ci": [
+          -4.815714285714287,
+          0.49571428571427945
+        ]
+      }
+    },
+    "per_scenario_records": [
+      {
+        "scenario_id": "mob_scen_01_iid",
+        "scenario_name": "Mobile Uniform Device Cohort (IID)",
+        "oracle_config": "exp_15_robust_ternary",
+        "oracle_acc": 86.24000000000001,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_11_qsgd",
+            "acc": 85.59,
+            "wire_mb": 14.021272659301758,
+            "regret": 0.6500000000000057,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 86.05000000000001,
+            "wire_mb": 24.252777099609375,
+            "regret": 0.18999999999999773,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_01_fedavg",
+            "acc": 86.05000000000001,
+            "wire_mb": 24.252777099609375,
+            "regret": 0.18999999999999773,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 85.92999999999999,
+            "wire_mb": 24.252777099609375,
+            "regret": 0.3100000000000165,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_03_scaffold",
+            "acc": 85.92999999999999,
+            "wire_mb": 24.252777099609375,
+            "regret": 0.3100000000000165,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 60.870000000000005,
+            "wire_mb": 40.41977298259735,
+            "regret": 25.370000000000005,
+            "success": 0.625
+          }
+        }
+      },
+      {
+        "scenario_id": "mob_scen_02_mild_skew",
+        "scenario_name": "Mobile Realistic User Skew (alpha=0.5)",
+        "oracle_config": "exp_03_scaffold",
+        "oracle_acc": 87.92999999999999,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_11_qsgd",
+            "acc": 87.83999999999999,
+            "wire_mb": 23.36878776550293,
+            "regret": 0.09000000000000341,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 87.88,
+            "wire_mb": 40.421295166015625,
+            "regret": 0.04999999999999716,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_01_fedavg",
+            "acc": 87.88,
+            "wire_mb": 40.421295166015625,
+            "regret": 0.04999999999999716,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 87.92999999999999,
+            "wire_mb": 40.421295166015625,
+            "regret": 0.0,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_08_bulyan",
+            "acc": 85.91,
+            "wire_mb": 56.589813232421875,
+            "regret": 2.019999999999996,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 59.37625,
+            "wire_mb": 52.18301784992218,
+            "regret": 28.553749999999994,
+            "success": 0.625
+          }
+        }
+      },
+      {
+        "scenario_id": "mob_scen_03_severe_skew",
+        "scenario_name": "Mobile Extreme Topic Skew (alpha=0.1)",
+        "oracle_config": "exp_03_scaffold",
+        "oracle_acc": 85.34,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_15_robust_ternary",
+            "acc": 64.24,
+            "wire_mb": 42.948055267333984,
+            "regret": 21.10000000000001,
+            "success": 0
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 81.05,
+            "wire_mb": 80.84259033203125,
+            "regret": 4.290000000000006,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_02_fedprox",
+            "acc": 81.02000000000001,
+            "wire_mb": 80.84259033203125,
+            "regret": 4.319999999999993,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_09_median",
+            "acc": 66.08000000000001,
+            "wire_mb": 80.84259033203125,
+            "regret": 19.25999999999999,
+            "success": 0
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_08_bulyan",
+            "acc": 72.00999999999999,
+            "wire_mb": 80.84259033203125,
+            "regret": 13.330000000000013,
+            "success": 0
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 49.27250000000001,
+            "wire_mb": 69.43315696716309,
+            "regret": 36.067499999999995,
+            "success": 0.25
+          }
+        }
+      },
+      {
+        "scenario_id": "mob_scen_04_flaky_cellular",
+        "scenario_name": "Mobile Spotty Cellular Uplink (10% participation)",
+        "oracle_config": "exp_03_scaffold",
+        "oracle_acc": 88.06,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_11_qsgd",
+            "acc": 86.49,
+            "wire_mb": 16.35815143585205,
+            "regret": 1.5700000000000074,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 86.78,
+            "wire_mb": 28.294906616210938,
+            "regret": 1.2800000000000011,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_10_ternary_compression",
+            "acc": 87.86,
+            "wire_mb": 19.326624870300293,
+            "regret": 0.20000000000000284,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 88.06,
+            "wire_mb": 28.294906616210938,
+            "regret": 0.0,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_03_scaffold",
+            "acc": 88.06,
+            "wire_mb": 28.294906616210938,
+            "regret": 0.0,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 59.066250000000004,
+            "wire_mb": 31.761553823947906,
+            "regret": 28.99375,
+            "success": 0.625
+          }
+        }
+      },
+      {
+        "scenario_id": "mob_scen_05_sybil_signflip",
+        "scenario_name": "Mobile Sybil Sign-Flip Attack (20% botnet)",
+        "oracle_config": "exp_08_bulyan",
+        "oracle_acc": 85.11,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_06_trimmed_mean",
+            "acc": 73.79,
+            "wire_mb": 80.84259033203125,
+            "regret": 11.319999999999993,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 68.37,
+            "wire_mb": 80.84259033203125,
+            "regret": 16.739999999999995,
+            "success": 0
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_06_trimmed_mean",
+            "acc": 73.79,
+            "wire_mb": 80.84259033203125,
+            "regret": 11.319999999999993,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 80.93,
+            "wire_mb": 80.84259033203125,
+            "regret": 4.179999999999993,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_03_scaffold",
+            "acc": 80.93,
+            "wire_mb": 80.84259033203125,
+            "regret": 4.179999999999993,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 50.418125,
+            "wire_mb": 69.43315696716309,
+            "regret": 34.691874999999996,
+            "success": 0.3125
+          }
+        }
+      },
+      {
+        "scenario_id": "mob_scen_06_scaled_update",
+        "scenario_name": "Mobile Scaled Update Poisoning (20% adversaries)",
+        "oracle_config": "exp_01_fedavg",
+        "oracle_acc": 90.02,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_06_trimmed_mean",
+            "acc": 87.53999999999999,
+            "wire_mb": 48.50555419921875,
+            "regret": 2.480000000000004,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 90.02,
+            "wire_mb": 64.674072265625,
+            "regret": 0.0,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_06_trimmed_mean",
+            "acc": 87.53999999999999,
+            "wire_mb": 48.50555419921875,
+            "regret": 2.480000000000004,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 85.57000000000001,
+            "wire_mb": 48.50555419921875,
+            "regret": 4.449999999999989,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_08_bulyan",
+            "acc": 85.59,
+            "wire_mb": 64.674072265625,
+            "regret": 4.429999999999993,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 60.85625,
+            "wire_mb": 58.917285323143005,
+            "regret": 29.163749999999993,
+            "success": 0.5625
+          }
+        }
+      },
+      {
+        "scenario_id": "mob_scen_07_consumer_dp",
+        "scenario_name": "Mobile User Privacy Compliance (Client DP)",
+        "oracle_config": "exp_12_dp_eps8",
+        "oracle_acc": 29.020000000000003,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_02_fedprox",
+            "acc": 26.51,
+            "wire_mb": 71.94990539550781,
+            "regret": 2.5100000000000016,
+            "success": 0
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 26.52,
+            "wire_mb": 71.94990539550781,
+            "regret": 2.5000000000000036,
+            "success": 0
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_12_dp_eps8",
+            "acc": 29.020000000000003,
+            "wire_mb": 71.94990539550781,
+            "regret": 0.0,
+            "success": 0
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 27.88,
+            "wire_mb": 71.94990539550781,
+            "regret": 1.1400000000000041,
+            "success": 0
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_03_scaffold",
+            "acc": 27.88,
+            "wire_mb": 71.94990539550781,
+            "regret": 1.1400000000000041,
+            "success": 0
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 20.61,
+            "wire_mb": 63.72916340827942,
+            "regret": 8.410000000000004,
+            "success": 0.0
+          }
+        }
+      }
+    ]
+  },
+  "iot_edge": {
+    "domain_id": "iot_edge",
+    "target_accuracy": 72.19,
+    "target_justification": "85% of clean IID scenario max accuracy (72.2%)",
+    "summary_by_method": {
+      "Recommender_Proposed": {
+        "mean_acc": 67.2257501575452,
+        "success_rate_pct": 57.14285714285714,
+        "mean_uplink_mb": 43.919097900390625,
+        "mean_sim_time_sec": 6.936165028567692,
+        "mean_regret": 5.7928159387270375,
+        "privacy_satisfaction_pct": 100.0,
+        "bandwidth_satisfaction_pct": 100.0,
+        "robustness_satisfaction_pct": 100.0
+      },
+      "Baseline_Default_FedAvg": {
+        "mean_acc": 60.52644335643996,
+        "success_rate_pct": 42.857142857142854,
+        "mean_uplink_mb": 56.74213736397879,
+        "mean_sim_time_sec": 6.002121114288457,
+        "mean_regret": 12.492122739832277,
+        "privacy_satisfaction_pct": 85.71428571428571,
+        "bandwidth_satisfaction_pct": 85.71428571428571,
+        "robustness_satisfaction_pct": 71.42857142857143
+      },
+      "Baseline_Random_Pick": {
+        "mean_acc": 48.48483930389259,
+        "success_rate_pct": 22.321428571428573,
+        "mean_uplink_mb": 50.474101526396616,
+        "mean_sim_time_sec": 6.976320577678832,
+        "mean_regret": 24.53372679237966,
+        "privacy_satisfaction_pct": 89.28571428571429,
+        "bandwidth_satisfaction_pct": 89.28571428571429,
+        "robustness_satisfaction_pct": 78.57142857142857
+      },
+      "Baseline_Handwritten_Rule": {
+        "mean_acc": 62.03402976392458,
+        "success_rate_pct": 42.857142857142854,
+        "mean_uplink_mb": 55.087550571986604,
+        "mean_sim_time_sec": 6.9695555428625084,
+        "mean_regret": 10.984536332347668,
+        "privacy_satisfaction_pct": 100.0,
+        "bandwidth_satisfaction_pct": 100.0,
+        "robustness_satisfaction_pct": 100.0
+      },
+      "Baseline_Domain_Blind": {
+        "mean_acc": 59.48422124194095,
+        "success_rate_pct": 42.857142857142854,
+        "mean_uplink_mb": 56.74213736397879,
+        "mean_sim_time_sec": 6.883795285713859,
+        "mean_regret": 13.534344854331284,
+        "privacy_satisfaction_pct": 85.71428571428571,
+        "bandwidth_satisfaction_pct": 85.71428571428571,
+        "robustness_satisfaction_pct": 71.42857142857143
+      },
+      "Baseline_Simple_KNN": {
+        "mean_acc": 58.054195549953945,
+        "success_rate_pct": 42.857142857142854,
+        "mean_uplink_mb": 56.74213736397879,
+        "mean_sim_time_sec": 5.890317599987611,
+        "mean_regret": 14.964370546318293,
+        "privacy_satisfaction_pct": 85.71428571428571,
+        "bandwidth_satisfaction_pct": 85.71428571428571,
+        "robustness_satisfaction_pct": 85.71428571428571
+      }
+    },
+    "pairwise_vs_recommender": {
+      "Baseline_Default_FedAvg": {
+        "wins": 3,
+        "ties": 1,
+        "losses": 3,
+        "mean_diff": 6.69930680110524,
+        "bootstrap_95_ci": [
+          -1.6675553831984098,
+          20.156090939938917
+        ]
+      },
+      "Baseline_Random_Pick": {
+        "wins": 6,
+        "ties": 0,
+        "losses": 1,
+        "mean_diff": 18.740910853652625,
+        "bootstrap_95_ci": [
+          10.057443404915412,
+          28.074858209316975
+        ]
+      },
+      "Baseline_Handwritten_Rule": {
+        "wins": 2,
+        "ties": 2,
+        "losses": 3,
+        "mean_diff": 5.191720393620629,
+        "bootstrap_95_ci": [
+          -3.9798342139706286,
+          19.021765475786513
+        ]
+      },
+      "Baseline_Domain_Blind": {
+        "wins": 4,
+        "ties": 0,
+        "losses": 3,
+        "mean_diff": 7.741528915604246,
+        "bootstrap_95_ci": [
+          -3.936206311503221,
+          21.91574967279073
+        ]
+      },
+      "Baseline_Simple_KNN": {
+        "wins": 4,
+        "ties": 1,
+        "losses": 2,
+        "mean_diff": 9.171554607591256,
+        "bootstrap_95_ci": [
+          -4.673033108730424,
+          23.869310194386546
+        ]
+      }
+    },
+    "per_scenario_records": [
+      {
+        "scenario_id": "iot_scen_01_iid",
+        "scenario_name": "IoT Uniform Telemetry (IID)",
+        "oracle_config": "exp_08_bulyan",
+        "oracle_acc": 84.9338310145911,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_11_qsgd",
+            "acc": 82.7960637936885,
+            "wire_mb": 35.712432861328125,
+            "regret": 2.137767220902603,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 82.7960637936885,
+            "wire_mb": 61.77215576171875,
+            "regret": 2.137767220902603,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_01_fedavg",
+            "acc": 82.7960637936885,
+            "wire_mb": 61.77215576171875,
+            "regret": 2.137767220902603,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 83.6783169324737,
+            "wire_mb": 61.77215576171875,
+            "regret": 1.2555140821174007,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_09_median",
+            "acc": 84.0176450627757,
+            "wire_mb": 61.77215576171875,
+            "regret": 0.9161859518154074,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 65.75330844927045,
+            "wire_mb": 55.06177854537964,
+            "regret": 19.180522565320658,
+            "success": 0.625
+          }
+        }
+      },
+      {
+        "scenario_id": "iot_scen_02_mild_skew",
+        "scenario_name": "IoT Realistic User Skew (alpha=0.5)",
+        "oracle_config": "exp_01_fedavg",
+        "oracle_acc": 87.44485917882592,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_11_qsgd",
+            "acc": 85.95181540549711,
+            "wire_mb": 35.712432861328125,
+            "regret": 1.4930437733288073,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 87.44485917882592,
+            "wire_mb": 61.77215576171875,
+            "regret": 0.0,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_01_fedavg",
+            "acc": 87.44485917882592,
+            "wire_mb": 61.77215576171875,
+            "regret": 0.0,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 82.0834747200543,
+            "wire_mb": 61.77215576171875,
+            "regret": 5.361384458771624,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_09_median",
+            "acc": 76.72209026128266,
+            "wire_mb": 61.77215576171875,
+            "regret": 10.722768917543263,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 61.384458771632175,
+            "wire_mb": 55.06177854537964,
+            "regret": 26.060400407193747,
+            "success": 0.4375
+          }
+        }
+      },
+      {
+        "scenario_id": "iot_scen_03_severe_skew",
+        "scenario_name": "IoT Extreme Specialized Users (alpha=0.1)",
+        "oracle_config": "exp_11_qsgd",
+        "oracle_acc": 65.49032914828639,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_11_qsgd",
+            "acc": 65.49032914828639,
+            "wire_mb": 35.712432861328125,
+            "regret": 0.0,
+            "success": 0
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 57.34645402103834,
+            "wire_mb": 61.77215576171875,
+            "regret": 8.143875127248052,
+            "success": 0
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_02_fedprox",
+            "acc": 59.24669155072956,
+            "wire_mb": 61.77215576171875,
+            "regret": 6.243637597556834,
+            "success": 0
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_09_median",
+            "acc": 46.28435697319308,
+            "wire_mb": 61.77215576171875,
+            "regret": 19.205972175093315,
+            "success": 0
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_09_median",
+            "acc": 46.28435697319308,
+            "wire_mb": 61.77215576171875,
+            "regret": 19.205972175093315,
+            "success": 0
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 44.829487614523245,
+            "wire_mb": 55.06177854537964,
+            "regret": 20.660841533763147,
+            "success": 0.0
+          }
+        }
+      },
+      {
+        "scenario_id": "iot_scen_04_flaky_sensor",
+        "scenario_name": "IoT Intermittent Connectivity (20% participation)",
+        "oracle_config": "exp_11_qsgd",
+        "oracle_acc": 62.57210722768918,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_10_ternary_compression",
+            "acc": 40.44791313199864,
+            "wire_mb": 13.126754760742188,
+            "regret": 22.12419409569054,
+            "success": 0
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 44.11265693926026,
+            "wire_mb": 24.7088623046875,
+            "regret": 18.45945028842892,
+            "success": 0
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_10_ternary_compression",
+            "acc": 40.44791313199864,
+            "wire_mb": 13.126754760742188,
+            "regret": 22.12419409569054,
+            "success": 0
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 54.29250084832032,
+            "wire_mb": 24.7088623046875,
+            "regret": 8.279606379368857,
+            "success": 0
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_09_median",
+            "acc": 62.43637597556837,
+            "wire_mb": 24.7088623046875,
+            "regret": 0.13573125212081294,
+            "success": 0
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 41.684340006786556,
+            "wire_mb": 21.654078483581543,
+            "regret": 20.887767220902624,
+            "success": 0.0
+          }
+        }
+      },
+      {
+        "scenario_id": "iot_scen_05_byzantine_signflip",
+        "scenario_name": "IoT Byzantine Sign-Flip Attack (20% adversaries)",
+        "oracle_config": "exp_03_scaffold",
+        "oracle_acc": 76.62029182219206,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_09_median",
+            "acc": 73.63420427553444,
+            "wire_mb": 61.77215576171875,
+            "regret": 2.9860875466576147,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 75.12724804886325,
+            "wire_mb": 61.77215576171875,
+            "regret": 1.4930437733288073,
+            "success": 1
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_06_trimmed_mean",
+            "acc": 74.14319647098745,
+            "wire_mb": 61.77215576171875,
+            "regret": 2.4770953512046106,
+            "success": 1
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 76.62029182219206,
+            "wire_mb": 61.77215576171875,
+            "regret": 0.0,
+            "success": 1
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_09_median",
+            "acc": 73.63420427553444,
+            "wire_mb": 61.77215576171875,
+            "regret": 2.9860875466576147,
+            "success": 1
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 57.43340685442823,
+            "wire_mb": 55.06177854537964,
+            "regret": 19.18688496776383,
+            "success": 0.375
+          }
+        }
+      },
+      {
+        "scenario_id": "iot_scen_06_sensor_gaussian_noise",
+        "scenario_name": "IoT Faulty Sensor Gaussian Noise (20% nodes)",
+        "oracle_config": "exp_07_krum",
+        "oracle_acc": 77.90973871733968,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_09_median",
+            "acc": 77.29894808279606,
+            "wire_mb": 61.77215576171875,
+            "regret": 0.6107906345436191,
+            "success": 1
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 32.03257550050899,
+            "wire_mb": 61.77215576171875,
+            "regret": 45.87716321683069,
+            "success": 0
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_06_trimmed_mean",
+            "acc": 34.000678656260604,
+            "wire_mb": 61.77215576171875,
+            "regret": 43.909060061079074,
+            "success": 0
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 32.67729894808279,
+            "wire_mb": 61.77215576171875,
+            "regret": 45.232439769256885,
+            "success": 0
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_01_fedavg",
+            "acc": 32.03257550050899,
+            "wire_mb": 61.77215576171875,
+            "regret": 45.87716321683069,
+            "success": 0
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 35.194689514760775,
+            "wire_mb": 55.06177854537964,
+            "regret": 42.7150492025789,
+            "success": 0.125
+          }
+        }
+      },
+      {
+        "scenario_id": "iot_scen_07_health_telemetry_dp",
+        "scenario_name": "IoT Biometric Privacy Compliance (Client DP)",
+        "oracle_config": "exp_12_dp_eps8",
+        "oracle_acc": 56.15880556498134,
+        "picks": {
+          "Recommender_Proposed": {
+            "config_id": "exp_02_fedprox",
+            "acc": 44.960977265015266,
+            "wire_mb": 63.62532043457031,
+            "regret": 11.197828299966076,
+            "success": 0
+          },
+          "Baseline_Default_FedAvg": {
+            "config_id": "exp_01_fedavg",
+            "acc": 44.82524601289447,
+            "wire_mb": 63.62532043457031,
+            "regret": 11.333559552086875,
+            "success": 0
+          },
+          "Baseline_Handwritten_Rule": {
+            "config_id": "exp_12_dp_eps8",
+            "acc": 56.15880556498134,
+            "wire_mb": 63.62532043457031,
+            "regret": 0.0,
+            "success": 0
+          },
+          "Baseline_Domain_Blind": {
+            "config_id": "exp_03_scaffold",
+            "acc": 40.75330844927044,
+            "wire_mb": 63.62532043457031,
+            "regret": 15.4054971157109,
+            "success": 0
+          },
+          "Baseline_Simple_KNN": {
+            "config_id": "exp_09_median",
+            "acc": 31.25212080081439,
+            "wire_mb": 63.62532043457031,
+            "regret": 24.906684764166954,
+            "success": 0
+          },
+          "Baseline_Random_Pick": {
+            "config_id": "random_expectation",
+            "acc": 33.114183915846624,
+            "wire_mb": 56.35573947429657,
+            "regret": 23.04462164913472,
+            "success": 0.0
+          }
+        }
+      }
+    ]
+  }
+}

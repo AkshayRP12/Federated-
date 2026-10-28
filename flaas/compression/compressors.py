@@ -154,8 +154,45 @@ class ThresholdedTernaryCompressor(BaseCompressor):
         ternary[mask] = torch.sign(selected_elements) * scale
 
         # Wire bytes: 4 bytes scale header + 2 bits per coordinate for ternary {-scale, 0, +scale}
+        # 4 symbols pack into 1 byte (fully byte-aligned)
         wire_bytes = 4 + math.ceil((d * 2) / 8)
         return ternary.reshape(tensor.shape), wire_bytes
+
+    @staticmethod
+    def pack_2bit(ternary_tensor: torch.Tensor) -> Tuple[torch.Tensor, int]:
+        """
+        Vectorized 2-bit packing: packs four ternary symbols {-1, 0, +1} per uint8 byte.
+        Symbol encoding: 0 -> '00' (0), +1 -> '01' (1), -1 -> '10' (2).
+        """
+        flat = ternary_tensor.reshape(-1)
+        n = flat.numel()
+        sym = torch.zeros(n, dtype=torch.uint8, device=flat.device)
+        sym[flat > 0] = 1
+        sym[flat < 0] = 2
+
+        pad = (4 - (n % 4)) % 4
+        if pad > 0:
+            sym = torch.cat([sym, torch.zeros(pad, dtype=torch.uint8, device=flat.device)])
+
+        sym_4 = sym.view(-1, 4)
+        packed = (sym_4[:, 0] << 6) | (sym_4[:, 1] << 4) | (sym_4[:, 2] << 2) | sym_4[:, 3]
+        return packed, n
+
+    @staticmethod
+    def unpack_2bit(packed: torch.Tensor, original_numel: int, scale: float = 1.0) -> torch.Tensor:
+        """
+        Vectorized 2-bit unpacking: unpacks uint8 byte stream into ternary float32 values.
+        """
+        s0 = (packed >> 6) & 3
+        s1 = (packed >> 4) & 3
+        s2 = (packed >> 2) & 3
+        s3 = packed & 3
+        unpacked = torch.stack([s0, s1, s2, s3], dim=1).reshape(-1)[:original_numel]
+
+        out = torch.zeros(original_numel, dtype=torch.float32, device=packed.device)
+        out[unpacked == 1] = scale
+        out[unpacked == 2] = -scale
+        return out
 
 
 # Alias for backwards compatibility

@@ -192,3 +192,12 @@ def test_ternary_2bit_packing_compressor():
 
     # 8 coordinates * 2 bits = 16 bits = 2 bytes + 4 bytes scale = 6 bytes
     assert wire_bytes == 6
+
+    # Test vectorized pack and unpack
+    packed, n = ThresholdedTernaryCompressor.pack_2bit(comp)
+    assert packed.shape[0] == 2  # 8 coordinates / 4 per byte = 2 bytes
+    unpacked = ThresholdedTernaryCompressor.unpack_2bit(packed, n, scale=1.0)
+    # Signs and zero locations must match
+    assert torch.all((comp > 0) == (unpacked > 0))
+    assert torch.all((comp < 0) == (unpacked < 0))
+    assert torch.all((comp == 0) == (unpacked == 0))

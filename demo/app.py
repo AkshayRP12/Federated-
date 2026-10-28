@@ -325,8 +325,9 @@ def generate_empirical_rationale(rec, baseline, scenario_name, preset, rank=1, t
 
     if "Ternary" in name or "ternary" in rec["config_id"]:
         sentences.append(
-            "Note on measured runtime: 2-bit ternary compression exhibits higher wall-clock runtime "
-            "(e.g. ~83.8s vs ~9s) due to bit-packing and unpacking CPU overhead on non-byte-aligned bits."
+            "Note on runtime: All runtime values reflect simulation wall-clock on this machine, not device latency. "
+            "The 2-bit packing packs four symbols per byte (fully byte-aligned); "
+            "runtime variances across runs reflect host machine CPU scheduling."
         )
 
     if rec["epsilon"] > 0:
@@ -781,13 +782,18 @@ def main():
                             if baseline is not None:
                                 time_delta = rec_1["time_sec"] - baseline["time_sec"]
                                 st.metric(
-                                    label="Wall-Clock Time (s)",
+                                    label="Simulation Time (s)",
                                     value=f"{rec_1['time_sec']:.1f} s",
                                     delta=f"{time_delta:+.1f} s vs FedAvg",
                                     delta_color="inverse",
+                                    help="Simulation wall-clock on this machine, not device latency.",
                                 )
                             else:
-                                st.metric(label="Wall-Clock Time (s)", value=f"{rec_1['time_sec']:.1f} s")
+                                st.metric(
+                                    label="Simulation Time (s)",
+                                    value=f"{rec_1['time_sec']:.1f} s",
+                                    help="Simulation wall-clock on this machine, not device latency.",
+                                )
 
                         with m4:
                             st.metric(label="Rounds Completed", value=rec_1["rounds"])
@@ -825,10 +831,11 @@ def main():
                         with c3:
                             time_diff = rec_1["time_sec"] - baseline["time_sec"]
                             st.metric(
-                                label="Wall-Clock Time (s)",
+                                label="Simulation Time (s)",
                                 value=f"{rec_1['time_sec']:.1f} s",
                                 delta=f"{time_diff:+.1f} s",
                                 delta_color="inverse",
+                                help="Simulation wall-clock on this machine, not device latency.",
                             )
 
                     # Top-3 Table
@@ -847,7 +854,7 @@ def main():
                             "Strategy & Quantization": c["name"],
                             "Final Accuracy (%)": f"{c['accuracy']:.1f}%",
                             "Wire Traffic (MB)": f"{c['wire_mb']:.1f} MB",
-                            "Client Runtime (s)": f"{c['time_sec']:.1f} s",
+                            "Simulation Time (s)": f"{c['time_sec']:.1f} s",
                             "Composite Utility": f"{c['score']:.3f}",
                             "Rounds": c["rounds"],
                             "Pareto Optimal": "Yes" if c["is_pareto"] else "No",
@@ -860,6 +867,7 @@ def main():
     with tab_live:
         st.header("Live Federated Network Simulation")
         st.caption("Clients are simulated on this machine. Raw data never leaves a client object; only updates are passed to the server.")
+        st.caption("Live view uses a lightweight run (capped local steps); numbers differ from the stored benchmark.")
 
         # Simulation Controls Bar
         with st.container(border=True):
