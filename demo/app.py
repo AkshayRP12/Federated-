@@ -1,8 +1,7 @@
 """
-FLaaS Configuration Recommender - Interactive Executive Dashboard (Stage 8)
+FLaaS Configuration Recommender - Interactive Demo (Stage 8)
 Supports Mobile Applications and IoT Edge domains.
-Empirically grounded on real edge datasets with 1 seed (seed 42).
-Auto-refreshes from results store so new runs appear dynamically.
+Recommendations come from experiments on real MNIST and UCI HAR subsets, 1 seed, 2 domains.
 """
 
 import os
@@ -19,175 +18,11 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------------
-# Premium Visual Aesthetics & Design System (Custom CSS Injection)
-# -----------------------------------------------------------------------------
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Outfit', sans-serif !important;
-        font-weight: 700 !important;
-        letter-spacing: -0.02em !important;
-    }
-
-    /* Main Container Padding */
-    .block-container {
-        padding-top: 1.8rem;
-        padding-bottom: 3.5rem;
-        max-width: 1400px;
-    }
-
-    /* Top Hero Header Card */
-    .hero-card {
-        background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(30, 41, 59, 0.90) 100%);
-        border: 1px solid rgba(56, 189, 248, 0.25);
-        border-radius: 16px;
-        padding: 24px 28px;
-        margin-bottom: 24px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 20px 0 rgba(56, 189, 248, 0.1);
-    }
-
-    .hero-title {
-        font-size: 2.1rem;
-        font-weight: 800;
-        background: linear-gradient(90deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 6px;
-    }
-
-    .hero-subtitle {
-        color: #94A3B8;
-        font-size: 1.05rem;
-        line-height: 1.5;
-        margin-bottom: 14px;
-    }
-
-    .tag-pill {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 9999px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        margin-right: 8px;
-        margin-bottom: 4px;
-    }
-    .pill-blue { background: rgba(56, 189, 248, 0.15); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.35); }
-    .pill-green { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.35); }
-    .pill-purple { background: rgba(168, 85, 247, 0.15); color: #C084FC; border: 1px solid rgba(168, 85, 247, 0.35); }
-    .pill-amber { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.35); }
-
-    /* Recommendation Card (Hero) */
-    .rec-card {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
-        border: 2px solid #38BDF8;
-        border-radius: 16px;
-        padding: 24px;
-        margin-top: 10px;
-        margin-bottom: 24px;
-        box-shadow: 0 12px 30px rgba(56, 189, 248, 0.15);
-    }
-
-    .rec-badge {
-        background: #38BDF8;
-        color: #0F172A;
-        font-weight: 800;
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        padding: 4px 10px;
-        border-radius: 6px;
-        letter-spacing: 0.05em;
-        display: inline-block;
-        margin-bottom: 10px;
-    }
-
-    .rec-name {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #F8FAFC;
-        margin-bottom: 12px;
-    }
-
-    /* Metric Grid Tiles */
-    .metric-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-        margin: 18px 0;
-    }
-
-    .metric-tile {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 14px;
-        text-align: center;
-    }
-
-    .metric-label {
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #94A3B8;
-        margin-bottom: 4px;
-    }
-
-    .metric-value {
-        font-size: 1.45rem;
-        font-weight: 800;
-        color: #38BDF8;
-    }
-
-    .metric-sub {
-        font-size: 0.75rem;
-        color: #64748B;
-        margin-top: 2px;
-    }
-
-    /* Comparison Card */
-    .comp-card {
-        background: rgba(17, 24, 39, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        padding: 18px;
-        margin-bottom: 20px;
-    }
-
-    /* Form Card Container */
-    .form-panel {
-        background: rgba(17, 24, 39, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 22px;
-    }
-
-    /* Custom Alert Info */
-    .rationale-box {
-        background: rgba(30, 41, 59, 0.6);
-        border-left: 4px solid #38BDF8;
-        border-radius: 8px;
-        padding: 16px 18px;
-        font-size: 0.95rem;
-        color: #E2E8F0;
-        line-height: 1.6;
-        margin: 14px 0;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# -----------------------------------------------------------------------------
 # Results Store Loader (Reads Parquet or SQLite with 5s cache)
 # -----------------------------------------------------------------------------
-RESULTS_PARQUET = "results/stage4_grid.parquet"
-RESULTS_SQLITE = "results/stage4_grid.sqlite"
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+RESULTS_PARQUET = os.path.join(_PROJECT_ROOT, "results", "stage4_grid.parquet")
+RESULTS_SQLITE = os.path.join(_PROJECT_ROOT, "results", "stage4_grid.sqlite")
 
 
 @st.cache_data(ttl=5)
@@ -243,16 +78,16 @@ DOMAIN_INFO = {
 SCENARIO_HUMAN_NAMES = {
     # IoT Scenarios
     "iot_scen_01_iid": "Uniform Sensor Telemetry (IID, 50% Participation)",
-    "iot_scen_02_mild_skew": "Realistic User Behavior Variance (Non-IID α=0.5)",
-    "iot_scen_03_severe_skew": "Extreme Behavioral Specialization (Non-IID α=0.1)",
+    "iot_scen_02_mild_skew": "Realistic User Behavior Variance (Non-IID alpha=0.5)",
+    "iot_scen_03_severe_skew": "Extreme Behavioral Specialization (Non-IID alpha=0.1)",
     "iot_scen_04_flaky_sensor": "Intermittent Flaky Sensors (20% Low Participation)",
     "iot_scen_05_byzantine_signflip": "Byzantine Sign-Flip Adversarial Poisoning (20% Bad Nodes)",
     "iot_scen_06_sensor_gaussian_noise": "Hardware Sensor Faults (Gaussian Noise Injection)",
     "iot_scen_07_health_telemetry_dp": "Biometric Privacy Compliance (Client DP Required)",
     # Mobile Scenarios
     "mob_scen_01_iid": "Uniform Device Distribution (IID, 20% Wi-Fi Availability)",
-    "mob_scen_02_mild_skew": "Realistic User Camera Activity (Non-IID α=0.5)",
-    "mob_scen_03_severe_skew": "Severe Photographic Topic Specialization (Non-IID α=0.1)",
+    "mob_scen_02_mild_skew": "Realistic User Camera Activity (Non-IID alpha=0.5)",
+    "mob_scen_03_severe_skew": "Severe Photographic Topic Specialization (Non-IID alpha=0.1)",
     "mob_scen_04_flaky_cellular": "Spotty Cellular Uplink (10% Low Availability)",
     "mob_scen_05_sybil_signflip": "Coordinated Sybil Sign-Flip Attack (20% Botnet)",
     "mob_scen_06_scaled_update": "Targeted 5x Scaled Update Manipulation (20% Bad Nodes)",
@@ -262,28 +97,28 @@ SCENARIO_HUMAN_NAMES = {
 CONFIG_NAMES = {
     # Original kb-v1 configs
     "cfg_01_baseline": "FedAvg (Standard SGD, Uncompressed)",
-    "cfg_02_fedprox": "FedProx (Proximal μ=0.01 Regularizer)",
-    "cfg_03_server_momentum": "Server Momentum (SGD β=0.9)",
-    "cfg_04_trimmed_mean": "TrimmedMean (Coordinate-Wise β=0.2)",
+    "cfg_02_fedprox": "FedProx (Proximal mu=0.01 Regularizer)",
+    "cfg_03_server_momentum": "Server Momentum (SGD beta=0.9)",
+    "cfg_04_trimmed_mean": "TrimmedMean (Coordinate-Wise beta=0.2)",
     "cfg_05_krum_bulyan": "MultiKrum (Distance Clustering)",
     "cfg_06_ternary_compression": "Ternary 2-Bit Packing (16x Bandwidth Reduction)",
     "cfg_07_client_dp": "Client DP (Clip=1.0, Noise=0.5)",
     "cfg_08_domain_optimal": "Domain Tailored Combination",
     # Expanded grid configs
     "exp_01_fedavg": "FedAvg (Canonical Baseline)",
-    "exp_02_fedprox": "FedProx (Proximal μ=0.01 Regularizer)",
+    "exp_02_fedprox": "FedProx (Proximal mu=0.01 Regularizer)",
     "exp_03_scaffold": "SCAFFOLD (Control Variate Drift Correction)",
     "exp_04_fednova": "FedNova (Normalized Gradient Averaging)",
     "exp_05_fedadam": "FedAdam (Adaptive Server Moments)",
-    "exp_06_trimmed_mean": "TrimmedMean (Coordinate-Wise β=0.2)",
+    "exp_06_trimmed_mean": "TrimmedMean (Coordinate-Wise beta=0.2)",
     "exp_07_krum": "MultiKrum (Geometric Outlier Filtering)",
     "exp_08_bulyan": "Bulyan (MultiKrum + TrimmedMean Combined)",
     "exp_09_median": "CoordinateMedian (High Breakdown Point)",
     "exp_10_ternary_compression": "Ternary 2-Bit Packing (16x Uplink Reduction)",
     "exp_11_qsgd": "QSGD (8-Level Stochastic Quantization)",
-    "exp_12_dp_eps8": "Client DP (Moderate Privacy, Target ε = 8.0)",
-    "exp_13_dp_eps4": "Client DP (Strict Privacy, Target ε = 4.0)",
-    "exp_14_dp_eps1": "Client DP (High-Security Privacy, Target ε = 1.0)",
+    "exp_12_dp_eps8": "Client DP (Moderate Privacy, Target eps = 8.0)",
+    "exp_13_dp_eps4": "Client DP (Strict Privacy, Target eps = 4.0)",
+    "exp_14_dp_eps1": "Client DP (High-Security Privacy, Target eps = 1.0)",
     "exp_15_robust_ternary": "TrimmedMean + Ternary 2-Bit Packing",
     "exp_16_fedadam_ternary": "FedAdam + Ternary 2-Bit Packing",
 }
@@ -422,11 +257,13 @@ def score_and_rank_candidates(sub_df, preset, require_byz, require_dp, require_c
             "is_pareto": is_pareto,
         })
 
-    candidates.sort(key=lambda x: x["score"], reverse=True)
+    # Sort by composite score descending, then tie-break by:
+    # 1. Lower wire_mb (better bandwidth), 2. Lower time_sec, 3. Config ID alphabetically
+    candidates.sort(key=lambda x: (-x["score"], x["wire_mb"], x["time_sec"], x["config_id"]))
     return candidates
 
 
-def generate_empirical_rationale(rec, baseline, scenario_name, preset):
+def generate_empirical_rationale(rec, baseline, scenario_name, preset, rank=1, tied_with_next=False):
     """Builds a plain-language explanation citing exact experiment numbers."""
     name = rec["name"]
     acc = rec["accuracy"]
@@ -434,35 +271,44 @@ def generate_empirical_rationale(rec, baseline, scenario_name, preset):
     time_s = rec["time_sec"]
 
     sentences = [
-        f"**Why this is recommended**: Under the `{preset}` optimization profile on `{scenario_name}`, `{name}` achieved the highest composite utility score ({rec['score']:.3f})."
+        f"Under the '{preset}' optimization profile on '{scenario_name}', "
+        f"'{name}' achieved composite utility score {rec['score']:.3f}."
     ]
 
+    if tied_with_next:
+        sentences.append(
+            "This configuration ties on composite score with the next-ranked alternative; "
+            "it is ranked higher by tie-break on lower bandwidth, then lower runtime, then config ID."
+        )
+
     if baseline:
-        b_name = baseline["name"]
         b_acc = baseline["accuracy"]
         b_wire = baseline["wire_mb"]
         acc_diff = acc - b_acc
         wire_ratio = (b_wire / max(1e-4, wire)) if wire > 0 else 1.0
 
         if acc_diff > 0.1:
-            perf_text = f"delivers a **+{acc_diff:.1f}% accuracy improvement** ({acc:.1f}% vs {b_acc:.1f}%)"
+            perf_text = f"delivers +{acc_diff:.1f}% accuracy improvement ({acc:.1f}% vs {b_acc:.1f}%)"
         elif acc_diff < -0.1:
             perf_text = f"trades a slight accuracy delta ({acc:.1f}% vs {b_acc:.1f}%)"
         else:
             perf_text = f"matches accuracy within 0.1% ({acc:.1f}% vs {b_acc:.1f}%)"
 
         if wire_ratio > 1.2:
-            band_text = f"while **cutting uplink network traffic by {wire_ratio:.1f}x** ({wire:.1f} MB vs {b_wire:.1f} MB)"
+            band_text = f"while cutting uplink traffic by {wire_ratio:.1f}x ({wire:.1f} MB vs {b_wire:.1f} MB)"
         else:
             band_text = f"with {wire:.1f} MB total uplink data"
 
-        sentences.append(f"Compared directly to standard FedAvg, it {perf_text} {band_text}.")
+        sentences.append(f"Compared to default FedAvg, it {perf_text} {band_text}.")
 
     if rec["is_pareto"]:
-        sentences.append("**Pareto Optimal**: No other feasible configuration achieves higher accuracy with lower bandwidth and lower training time on this benchmark.")
+        sentences.append(
+            "Pareto optimal: no other tested configuration achieves higher accuracy "
+            "with lower bandwidth and lower training time on this benchmark."
+        )
 
     if rec["epsilon"] > 0:
-        sentences.append(f"**Privacy Guarantee**: Verified differential privacy budget maintained at ε = {rec['epsilon']:.2f} (δ = 1e-5).")
+        sentences.append(f"Differential privacy budget: eps = {rec['epsilon']:.2f} (delta = 1e-5).")
 
     return " ".join(sentences)
 
@@ -471,30 +317,19 @@ def generate_empirical_rationale(rec, baseline, scenario_name, preset):
 # Main Application Layout
 # -----------------------------------------------------------------------------
 def main():
-    # 1. Top Hero Banner
-    st.markdown(
-        """
-        <div class="hero-card">
-            <div class="hero-title">FLaaS Recommender: Federated Learning Prescriptive Engine</div>
-            <div class="hero-subtitle">
-                Specify your edge deployment constraints (devices, bandwidth, drift, threats) — our engine searches 
-                rigorous empirical benchmark executions to prescribe the provably optimal FL algorithm, compression scheme, and defense.
-            </div>
-            <div>
-                <span class="tag-pill pill-blue">Real Datasets (MNIST & UCI HAR)</span>
-                <span class="tag-pill pill-green">Grounded on 1 Seed (Seed 42)</span>
-                <span class="tag-pill pill-purple">100% Empirical Evidence</span>
-                <span class="tag-pill pill-amber">Multi-Criteria Pareto Optimization</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    # 1. Title
+    st.title("FLaaS Configuration Recommender")
+    st.caption(
+        "Recommendations come from experiments on real MNIST and UCI HAR subsets, 1 seed, 2 domains."
     )
 
     # Load results store
     df, source_label = load_results_store()
     if df.empty:
-        st.error("No experiment runs found in results database. Please ensure grid runner has written to `results/stage4_grid.sqlite`.")
+        st.error(
+            "No experiment runs found in results database. "
+            "Please ensure grid runner has written to results/stage4_grid.sqlite."
+        )
         st.stop()
 
     # Sidebar: Domain Status & System Information
@@ -513,14 +348,12 @@ def main():
     st.sidebar.markdown(f"**Neural Architecture**: `{dom['model']}`")
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### Gating & Compliance")
+    st.sidebar.markdown("### Gating and Compliance")
     st.sidebar.markdown(
-        """
-        - [Active] **mobile_apps**: Real MNIST, 50 devices
-        - [Active] **iot_edge**: Real UCI HAR, 20 devices
-        - [Gated] **healthcare**: *Pending fixes (class skew under Dirichlet α=0.1)*
-        - [Gated] **finance**: *Pending fixes (extreme minority class collapse)*
-        """
+        "- [Active] **mobile_apps**: Real MNIST, 50 devices\n"
+        "- [Active] **iot_edge**: Real UCI HAR, 20 devices\n"
+        "- [Gated] **healthcare**: Pending fixes (class skew under Dirichlet alpha=0.1)\n"
+        "- [Gated] **finance**: Pending fixes (extreme minority class collapse)"
     )
     st.sidebar.caption(f"Results Data Store: {source_label}")
 
@@ -531,37 +364,34 @@ def main():
     # LEFT COLUMN: STEP 1 - DEFINE EDGE ENVIRONMENT
     # =========================================================================
     with col_input:
-        st.markdown("### Step 1: Define Your Edge Environment")
-        st.markdown(
-            "<span style='color: #94A3B8; font-size: 0.9rem;'>Configure the operational conditions of your edge deployment below:</span>",
-            unsafe_allow_html=True,
-        )
+        st.header("Step 1: Define Your Edge Environment")
+        st.caption("Configure the operational conditions of your edge deployment below:")
 
         with st.form("requirements_form"):
             # 1. Non-IID Skew
-            st.markdown("##### 1. User Data Heterogeneity (Non-IID Drift)")
+            st.subheader("1. User Data Heterogeneity (Non-IID Drift)")
             st.caption("How different is each user's local dataset from the global population?")
             skew_option = st.selectbox(
                 "Data Heterogeneity Skew",
                 options=[
                     "Uniform / IID (All clients share similar data distribution)",
-                    "Mild Non-IID (Realistic user variation, Dirichlet α=0.5)",
-                    "Moderate Non-IID (Noticeable user topic preference, Dirichlet α=0.3)",
-                    "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, α=0.1)",
+                    "Mild Non-IID (Realistic user variation, Dirichlet alpha=0.5)",
+                    "Moderate Non-IID (Noticeable user topic preference, Dirichlet alpha=0.3)",
+                    "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, alpha=0.1)",
                 ],
                 index=1,
                 label_visibility="collapsed",
             )
             alpha_map = {
                 "Uniform / IID (All clients share similar data distribution)": None,
-                "Mild Non-IID (Realistic user variation, Dirichlet α=0.5)": 0.5,
-                "Moderate Non-IID (Noticeable user topic preference, Dirichlet α=0.3)": 0.3,
-                "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, α=0.1)": 0.1,
+                "Mild Non-IID (Realistic user variation, Dirichlet alpha=0.5)": 0.5,
+                "Moderate Non-IID (Noticeable user topic preference, Dirichlet alpha=0.3)": 0.3,
+                "Severe Non-IID (Extreme specialization, users hold 1-2 classes only, alpha=0.1)": 0.1,
             }
             alpha_val = alpha_map[skew_option]
 
             # 2. Participation Rate
-            st.markdown("##### 2. Device Participation Rate (q)")
+            st.subheader("2. Device Participation Rate (q)")
             st.caption("What percentage of edge devices are online, plugged-in, and train each round?")
             part_rate = st.slider(
                 "Participation Rate",
@@ -572,12 +402,12 @@ def main():
                 label_visibility="collapsed",
             )
             st.markdown(
-                f"<span style='color: #38BDF8; font-size: 0.8rem; font-weight: 600;'>~{int(dom['num_clients'] * part_rate)} out of {dom['num_clients']} devices active per communication round</span>",
-                unsafe_allow_html=True,
+                f"~{int(dom['num_clients'] * part_rate)} out of {dom['num_clients']} "
+                f"devices active per communication round"
             )
 
             # 3. Byzantine Adversarial Threat
-            st.markdown("##### 3. Adversarial / Security Threat Risk")
+            st.subheader("3. Adversarial / Security Threat Risk")
             st.caption("Are there compromised devices, malicious actors, or faulty sensors in the fleet?")
             attack_option = st.selectbox(
                 "Security Threat",
@@ -603,15 +433,15 @@ def main():
                 att_frac = 0.2
 
             # 4. Differential Privacy Requirement
-            st.markdown("##### 4. Privacy Compliance Target (Client DP)")
+            st.subheader("4. Privacy Compliance Target (Client DP)")
             st.caption("Do you require provable differential privacy to protect user data from reconstruction?")
             dp_option = st.selectbox(
                 "Privacy Guarantee",
                 options=[
                     "No Privacy Constraint (Standard Training)",
-                    "Moderate Privacy (Client DP, Target ε = 8.0)",
-                    "Strict Privacy (Client DP, Target ε = 4.0)",
-                    "High-Security Privacy (Client DP, Target ε = 1.0)",
+                    "Moderate Privacy (Client DP, Target eps = 8.0)",
+                    "Strict Privacy (Client DP, Target eps = 4.0)",
+                    "High-Security Privacy (Client DP, Target eps = 1.0)",
                 ],
                 index=0,
                 label_visibility="collapsed",
@@ -619,7 +449,7 @@ def main():
             dp_mode = "none" if "No Privacy" in dp_option else "client_dp"
 
             # 5. Bandwidth Constraint
-            st.markdown("##### 5. Network Uplink Bandwidth")
+            st.subheader("5. Network Uplink Bandwidth")
             st.caption("Are clients on cellular / limited bandwidth where model updates must be compressed?")
             bw_option = st.selectbox(
                 "Bandwidth Constraint",
@@ -633,7 +463,7 @@ def main():
             require_compression = "Strict Bandwidth" in bw_option
 
             # 6. Optimization Goal Preset
-            st.markdown("##### 6. Recommender Optimization Priority")
+            st.subheader("6. Recommender Optimization Priority")
             st.caption("What is the primary business metric your deployment optimizes for?")
             preset = st.selectbox(
                 "Optimization Goal",
@@ -648,11 +478,12 @@ def main():
                 label_visibility="collapsed",
             )
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("Prescribe Optimal FL Configuration", use_container_width=True)
+            submitted = st.form_submit_button(
+                "Get Recommendation", use_container_width=True
+            )
 
     # =========================================================================
-    # RIGHT COLUMN: STEP 2 - PRESCRIBED RECOMMENDATION & PERFORMANCE EVIDENCE
+    # RIGHT COLUMN: STEP 2 - RECOMMENDATION & PERFORMANCE EVIDENCE
     # =========================================================================
     with col_results:
         domain_df = df[df["domain"] == domain_choice]
@@ -690,7 +521,10 @@ def main():
         )
 
         if not ranked_candidates:
-            st.info("Strict filtering yielded 0 candidates; relaxing constraints to display all empirical runs for this scenario.")
+            st.info(
+                "Strict filtering yielded 0 candidates; relaxing constraints "
+                "to display all empirical runs for this scenario."
+            )
             ranked_candidates = score_and_rank_candidates(
                 sub_df=scen_df,
                 preset=preset,
@@ -703,182 +537,204 @@ def main():
         rec_1 = top_3[0]
 
         # Baseline FedAvg for direct head-to-head comparison
-        baseline_match = [c for c in ranked_candidates if "fedavg" in c["config_id"].lower() or "baseline" in c["config_id"].lower()]
+        baseline_match = [
+            c for c in ranked_candidates
+            if "fedavg" in c["config_id"].lower() or "baseline" in c["config_id"].lower()
+        ]
         baseline = baseline_match[0] if baseline_match else None
 
-        # ---------------------------------------------------------------------
-        # Scenario Match Context Box
-        # ---------------------------------------------------------------------
-        st.markdown(
-            f"""
-            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;">
-                <div style="font-size: 0.78rem; text-transform: uppercase; color: #94A3B8; font-weight: 700; letter-spacing: 0.05em;">Matched Benchmark Scenario</div>
-                <div style="font-size: 1.15rem; font-weight: 700; color: #F1F5F9; margin-top: 2px;">{matched_human_name}</div>
-                <div style="font-size: 0.82rem; color: #64748B; margin-top: 4px;">
-                    Nearest empirical grid execution | Identifier: <code>{matched_scenario_id}</code> | Normalized Feature Distance: <code>{match_dist:.3f}</code>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        # -----------------------------------------------------------------
+        # Matched Scenario Context
+        # -----------------------------------------------------------------
+        with st.container(border=True):
+            st.markdown("**Matched Benchmark Scenario**")
+            st.markdown(f"**{matched_human_name}**")
+            st.markdown(
+                f"Nearest empirical grid execution. "
+                f"Identifier: `{matched_scenario_id}` | "
+                f"Feature distance: `{match_dist:.3f}`"
+            )
+
+        # -----------------------------------------------------------------
+        # RECOMMENDATION CARD
+        # -----------------------------------------------------------------
+        st.header("Step 2: Recommended Configuration")
+
+        with st.container(border=True):
+            st.subheader(rec_1["name"])
+            st.markdown(
+                f"Configuration ID: `{rec_1['config_id']}` | "
+                f"Composite score: **{rec_1['score']:.3f}**"
+            )
+
+            tags = []
+            if rec_1["is_pareto"]:
+                tags.append("Pareto optimal")
+            if rec_1["epsilon"] > 0:
+                tags.append(f"eps = {rec_1['epsilon']:.2f} DP")
+            if rec_1["early_stopped"]:
+                tags.append(f"Early stopped at round {rec_1['rounds']}")
+            else:
+                tags.append(f"{rec_1['rounds']} rounds (max reached)")
+            if tags:
+                st.markdown(" | ".join(tags))
+
+            # Metrics: 4 columns using st.metric
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                if baseline:
+                    acc_delta = rec_1["accuracy"] - baseline["accuracy"]
+                    st.metric(
+                        label="Model Accuracy",
+                        value=f"{rec_1['accuracy']:.1f}%",
+                        delta=f"{acc_delta:+.1f}% vs FedAvg",
+                        delta_color="normal",
+                    )
+                else:
+                    st.metric(label="Model Accuracy", value=f"{rec_1['accuracy']:.1f}%")
+
+            with m2:
+                if baseline:
+                    wire_delta = rec_1["wire_mb"] - baseline["wire_mb"]
+                    st.metric(
+                        label="Uplink Traffic (MB)",
+                        value=f"{rec_1['wire_mb']:.1f}",
+                        delta=f"{wire_delta:+.1f} MB vs FedAvg",
+                        delta_color="inverse",
+                    )
+                else:
+                    st.metric(label="Uplink Traffic (MB)", value=f"{rec_1['wire_mb']:.1f}")
+
+            with m3:
+                if baseline:
+                    time_delta = rec_1["time_sec"] - baseline["time_sec"]
+                    st.metric(
+                        label="Wall-Clock Time (s)",
+                        value=f"{rec_1['time_sec']:.1f}",
+                        delta=f"{time_delta:+.1f} s vs FedAvg",
+                        delta_color="inverse",
+                    )
+                else:
+                    st.metric(label="Wall-Clock Time (s)", value=f"{rec_1['time_sec']:.1f}")
+
+            with m4:
+                st.metric(label="Rounds Completed", value=rec_1["rounds"])
+
+        # -----------------------------------------------------------------
+        # Rationale
+        # -----------------------------------------------------------------
+        # Detect tie between #1 and #2
+        tied_1_2 = len(top_3) >= 2 and abs(rec_1["score"] - top_3[1]["score"]) < 1e-3
+
+        rationale_text = generate_empirical_rationale(
+            rec_1, baseline, matched_human_name, preset,
+            rank=1, tied_with_next=tied_1_2,
         )
+        with st.expander("Why this configuration?", expanded=True):
+            st.markdown(rationale_text)
 
-        # ---------------------------------------------------------------------
-        # HERO RECOMMENDATION CARD
-        # ---------------------------------------------------------------------
-        pareto_badge = '<span class="tag-pill pill-amber">Pareto Optimal</span>' if rec_1['is_pareto'] else ''
-        dp_badge = f'<span class="tag-pill pill-purple">ε = {rec_1["epsilon"]:.2f} DP</span>' if rec_1['epsilon'] > 0 else ''
-
-        st.markdown(
-            f"""
-            <div class="rec-card">
-                <div>
-                    <span class="rec-badge">Prescribed Recommendation</span>
-                    {pareto_badge}
-                    {dp_badge}
-                </div>
-                <div class="rec-name">{rec_1['name']}</div>
-                <div style="color: #94A3B8; font-size: 0.88rem;">Configuration ID: <code>{rec_1['config_id']}</code> | Composite Utility Score: <strong>{rec_1['score']:.3f}</strong></div>
-                
-                <div class="metric-grid">
-                    <div class="metric-tile">
-                        <div class="metric-label">Model Accuracy</div>
-                        <div class="metric-value">{rec_1['accuracy']:.1f}%</div>
-                        <div class="metric-sub">Held-out test split</div>
-                    </div>
-                    <div class="metric-tile">
-                        <div class="metric-label">Uplink Traffic</div>
-                        <div class="metric-value">{rec_1['wire_mb']:.1f} MB</div>
-                        <div class="metric-sub">Total wire payload</div>
-                    </div>
-                    <div class="metric-tile">
-                        <div class="metric-label">Wall-Clock Time</div>
-                        <div class="metric-value">{rec_1['time_sec']:.1f} s</div>
-                        <div class="metric-sub">Execution duration</div>
-                    </div>
-                    <div class="metric-tile">
-                        <div class="metric-label">Rounds Executed</div>
-                        <div class="metric-value">{rec_1['rounds']}</div>
-                        <div class="metric-sub">{'Early stopped' if rec_1['early_stopped'] else 'Max rounds reached'}</div>
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        # -----------------------------------------------------------------
+        # Head-to-Head Comparison vs Default FedAvg (st.metric)
+        # -----------------------------------------------------------------
+        st.markdown("---")
+        st.header("Comparison vs Default FedAvg")
+        st.caption(
+            "Direct empirical performance measured under the same scenario conditions "
+            "(1 seed, Seed 42)."
         )
-
-        # Plain Language Empirical Rationale Box
-        rationale_html = generate_empirical_rationale(rec_1, baseline, matched_human_name, preset)
-        st.markdown(
-            f"""
-            <div class="rationale-box">
-                {rationale_html}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # ---------------------------------------------------------------------
-        # DEDICATED VISUAL COMPARISONS (SEPARATE & CRYSTAL CLEAR)
-        # ---------------------------------------------------------------------
-        st.markdown("### Head-to-Head Comparison: Prescription vs Default FedAvg")
-        st.caption("Direct side-by-side empirical performance measured under the exact same scenario conditions (1 seed: Seed 42).")
 
         if baseline is not None:
             c1, c2, c3 = st.columns(3)
 
-            # Chart 1: Accuracy (%)
             with c1:
-                st.markdown("##### Model Accuracy (%)")
-                acc_df = pd.DataFrame({
-                    "Config": ["Prescribed", "Default FedAvg"],
-                    "Accuracy (%)": [rec_1["accuracy"], baseline["accuracy"]],
-                }).set_index("Config")
-                st.bar_chart(acc_df, color=["#38BDF8"])
                 acc_diff = rec_1["accuracy"] - baseline["accuracy"]
-                if acc_diff >= 0:
-                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>+{acc_diff:.2f}% higher accuracy</span>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<span style='color: #F87171; font-weight: 700;'>{acc_diff:.2f}% lower accuracy</span>", unsafe_allow_html=True)
+                st.metric(
+                    label="Accuracy (%)",
+                    value=f"{rec_1['accuracy']:.1f}%",
+                    delta=f"{acc_diff:+.2f}%",
+                    delta_color="normal",
+                )
 
-            # Chart 2: Uplink Bandwidth (MB)
             with c2:
-                st.markdown("##### Uplink Traffic (MB)")
-                wire_df = pd.DataFrame({
-                    "Config": ["Prescribed", "Default FedAvg"],
-                    "Uplink (MB)": [rec_1["wire_mb"], baseline["wire_mb"]],
-                }).set_index("Config")
-                st.bar_chart(wire_df, color=["#818CF8"])
-                wire_ratio = baseline["wire_mb"] / max(1e-4, rec_1["wire_mb"])
-                if rec_1["wire_mb"] < baseline["wire_mb"]:
-                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>{wire_ratio:.1f}x bandwidth reduction</span>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<span style='color: #94A3B8; font-weight: 600;'>{rec_1['wire_mb']:.1f} MB transmitted</span>", unsafe_allow_html=True)
+                wire_diff = rec_1["wire_mb"] - baseline["wire_mb"]
+                st.metric(
+                    label="Uplink Traffic (MB)",
+                    value=f"{rec_1['wire_mb']:.1f} MB",
+                    delta=f"{wire_diff:+.1f} MB",
+                    delta_color="inverse",
+                )
 
-            # Chart 3: Runtime (s)
             with c3:
-                st.markdown("##### Wall-Clock Time (s)")
-                time_df = pd.DataFrame({
-                    "Config": ["Prescribed", "Default FedAvg"],
-                    "Time (s)": [rec_1["time_sec"], baseline["time_sec"]],
-                }).set_index("Config")
-                st.bar_chart(time_df, color=["#C084FC"])
                 time_diff = rec_1["time_sec"] - baseline["time_sec"]
-                if time_diff <= 0:
-                    st.markdown(f"<span style='color: #34D399; font-weight: 700;'>{abs(time_diff):.1f}s faster</span>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<span style='color: #94A3B8; font-weight: 600;'>+{time_diff:.1f}s defense overhead</span>", unsafe_allow_html=True)
+                st.metric(
+                    label="Wall-Clock Time (s)",
+                    value=f"{rec_1['time_sec']:.1f} s",
+                    delta=f"{time_diff:+.1f} s",
+                    delta_color="inverse",
+                )
         else:
             st.info("Default FedAvg configuration not present in this scenario slice.")
 
-        # ---------------------------------------------------------------------
+        # -----------------------------------------------------------------
         # TOP 3 CANDIDATE ALTERNATIVES TABLE
-        # ---------------------------------------------------------------------
+        # -----------------------------------------------------------------
         st.markdown("---")
-        st.markdown("### Top 3 Evaluated Alternatives")
-        st.caption("Ranked according to your selected optimization priority weights:")
+        st.header("Top 3 Evaluated Alternatives")
+        st.caption("Ranked by composite score with tie-break on lower bandwidth, then lower runtime, then config ID:")
 
         top3_rows = []
-        for rank, c in enumerate(top_3, 1):
+        for rank_idx, c in enumerate(top_3, 1):
+            # Detect tie with next candidate
+            tie_note = ""
+            if rank_idx < len(top_3):
+                next_c = top_3[rank_idx]  # 0-indexed: rank_idx is already offset by 1
+                if abs(c["score"] - next_c["score"]) < 1e-3:
+                    tie_note = " (tied, broken by bandwidth)"
             top3_rows.append({
-                "Rank": f"#{rank}",
-                "Configuration Name": c["name"],
+                "Rank": f"#{rank_idx}{tie_note}",
+                "Configuration": c["name"],
                 "Composite Score": f"{c['score']:.3f}",
-                "Test Accuracy": f"{c['accuracy']:.1f}%",
-                "Uplink MB": f"{c['wire_mb']:.1f} MB",
-                "Runtime": f"{c['time_sec']:.1f} s",
+                "Accuracy (%)": f"{c['accuracy']:.1f}",
+                "Uplink (MB)": f"{c['wire_mb']:.1f}",
+                "Runtime (s)": f"{c['time_sec']:.1f}",
                 "Rounds": c["rounds"],
                 "Pareto Optimal": "Yes" if c["is_pareto"] else "No",
             })
-        st.dataframe(pd.DataFrame(top3_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(top3_rows), width="stretch", hide_index=True)
 
-        # ---------------------------------------------------------------------
-        # EDUCATIONAL FL GLOSSARY (COLLAPSIBLE ACCORDION)
-        # ---------------------------------------------------------------------
-        with st.expander("Plain-Language Guide: What do these algorithms & terms mean?"):
+        # -----------------------------------------------------------------
+        # FL GLOSSARY (COLLAPSIBLE)
+        # -----------------------------------------------------------------
+        with st.expander("Plain-Language Guide: What do these algorithms and terms mean?"):
             st.markdown(
-                """
-                - **FedAvg**: The standard baseline. Clients train locally on their data and the server simply averages their weights. Fails when data is non-IID or under attack.
-                - **FedProx**: Adds a proximal regularizer to local loss to prevent clients from drifting too far from the global model under heterogeneous data distributions.
-                - **SCAFFOLD**: Uses control variates (drift estimators) on clients and server to correct for client drift under non-IID data distributions.
-                - **TrimmedMean**: A Byzantine defense that sorts coordinate updates and trims the lowest and highest values, filtering out extreme poisoning attacks.
-                - **Bulyan / CoordinateMedian**: Byzantine aggregators providing provable resilience even when up to 20% of participating nodes are malicious adversaries.
-                - **Ternary 2-Bit Packing**: Quantizes continuous 32-bit floating point weights into 3 states `{-1, 0, +1}` packed at 2 bits per coordinate, cutting network traffic by **16.0x**.
-                - **Client Differential Privacy (ε)**: Injects calibrated noise into the global aggregated model using Rényi DP, guaranteeing that an adversary cannot determine whether any individual client participated in training.
-                """
+                "- **FedAvg**: The standard baseline. Clients train locally on their data "
+                "and the server simply averages their weights. Fails when data is non-IID or under attack.\n"
+                "- **FedProx**: Adds a proximal regularizer to local loss to prevent clients from "
+                "drifting too far from the global model under heterogeneous data distributions.\n"
+                "- **SCAFFOLD**: Uses control variates (drift estimators) on clients and server to "
+                "correct for client drift under non-IID data distributions.\n"
+                "- **FedNova**: Normalizes gradient contributions by each client's local training steps, "
+                "correcting for objective inconsistency.\n"
+                "- **FedAdam**: Uses adaptive server-side moments (Adam optimizer on the server) for "
+                "more stable convergence.\n"
+                "- **TrimmedMean**: A Byzantine defense that sorts coordinate updates and trims the "
+                "lowest and highest values, filtering out extreme poisoning attacks.\n"
+                "- **Bulyan / CoordinateMedian**: Byzantine aggregators providing resilience even when "
+                "up to 20% of participating nodes are malicious adversaries.\n"
+                "- **Ternary 2-Bit Packing**: Quantizes continuous 32-bit floating point weights into 3 "
+                "states {-1, 0, +1} packed at 2 bits per coordinate, cutting network traffic by 16.0x.\n"
+                "- **QSGD**: Quantized Stochastic Gradient Descent with 8 quantization levels.\n"
+                "- **Client Differential Privacy (eps)**: Injects calibrated noise into the global "
+                "aggregated model using Renyi DP, guaranteeing that an adversary cannot determine "
+                "whether any individual client participated in training."
             )
 
     # -------------------------------------------------------------------------
-    # Empirical Integrity Footer
+    # Footer
     # -------------------------------------------------------------------------
     st.markdown("---")
-    st.markdown(
-        """
-        <div style="text-align: center; color: #64748B; font-size: 0.82rem; padding: 10px 0;">
-            <strong>FLaaS Empirical Grounding</strong>: All benchmarks run on real labeled datasets (MNIST for Mobile, UCI HAR for IoT). 
-            Evaluated on <strong>1 seed (Seed 42)</strong> across CPU/CUDA without heuristic overclaiming.
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.caption(
+        "Recommendations come from experiments on real MNIST and UCI HAR subsets, 1 seed, 2 domains."
     )
 
 

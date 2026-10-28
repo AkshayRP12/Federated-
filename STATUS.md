@@ -19,7 +19,7 @@
 | **Stage 5** | Recommender | PENDING | Feasibility filter, multi-criteria scoring, Pareto front, rationale generator, domain-agnostic baseline. |
 | **Stage 6** | Validator | PENDING | Static literature rules + failure rule mining from results. |
 | **Stage 7** | Evaluation | PENDING | Leave-one-scenario-out benchmark across R0, R1, R2, R3, R4. |
-| **Stage 8** | UI & Demo | PENDING | FastAPI backend + Streamlit interactive app with live privacy-budget meter. |
+| **Stage 8** | **UI & Demo** | **COMPLETED** | Streamlit demo app (`demo/app.py`) rewritten using native Streamlit components (no custom HTML/CSS). Light theme enforced via `.streamlit/config.toml`. Uses `st.metric` with `delta_color="inverse"` for lower-is-better metrics (bandwidth, runtime). Composite score tie-breaking implemented (bandwidth, then runtime, then config ID). No overclaims; caption states "Recommendations come from experiments on real MNIST and UCI HAR subsets, 1 seed, 2 domains." All 7 expanded grid tests pass. |
 | **Stage 9** | Documentation | PENDING | Methodology, quickstart, automated results report. |
 
 ---
