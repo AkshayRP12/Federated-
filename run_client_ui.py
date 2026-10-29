@@ -180,7 +180,7 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
       </div>
       <div class="top-controls">
         <button id="btn-sync-fleet" class="btn btn-success" onclick="trainAllDevices()">
-          ⚡ Train Entire Fleet (One-Click Sync)
+           Train Entire Fleet (One-Click Sync)
         </button>
       </div>
     </header>
@@ -192,7 +192,7 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
       </div>
       <div>
         <a href="http://localhost:8000" target="_blank" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
-          Open Server Dashboard (Port 8000) ↗
+          Open Server Dashboard (Port 8000)
         </a>
       </div>
     </div>
@@ -224,7 +224,7 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
           Waiting for training command.
         </div>
         <button class="btn btn-primary btn-train-client" id="btn-0" onclick="trainDevice(0, 'identity')">
-          🚀 Train Client #00 & Upload
+           Train Client #00 & Upload
         </button>
       </div>
 
@@ -254,7 +254,7 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
           Waiting for training command.
         </div>
         <button class="btn btn-primary btn-train-client" id="btn-1" onclick="trainDevice(1, 'identity')">
-          🚀 Train Client #01 & Upload
+           Train Client #01 & Upload
         </button>
       </div>
 
@@ -284,13 +284,13 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
           Waiting for training command.
         </div>
         <button class="btn btn-primary btn-train-client" id="btn-2" style="background: var(--purple);" onclick="trainDevice(2, 'ternary_2bit')">
-          ⚡ Train Client #02 (2-Bit Compressed)
+           Train Client #02 (2-Bit Compressed)
         </button>
       </div>
     </div>
 
     <div class="footer">
-      <div>Data Isolation Guarantee: Raw data never leaves client memory. Only gradients (Δw) are transmitted.</div>
+      <div>Data Isolation Guarantee: Raw data never leaves client memory. Only gradients (Delta_w) are transmitted.</div>
       <div>
         <a href="http://localhost:8000" target="_blank">Server Dashboard (Port 8000)</a>
         <a href="http://localhost:8501" target="_blank">Recommender UI (Port 8501)</a>
@@ -305,9 +305,9 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
         const data = await res.json();
         if (data.status === 'online') {
           document.getElementById('srv-info').innerHTML = 
-            `🟢 Server is <strong>ONLINE</strong> (Round ${data.current_round} / ${data.target_rounds} | Global Acc: <strong>${data.global_accuracy.toFixed(2)}%</strong> | Rule: ${data.rule})`;
+            ` Server is <strong>ONLINE</strong> (Round ${data.current_round} / ${data.target_rounds} | Global Acc: <strong>${data.global_accuracy.toFixed(2)}%</strong> | Rule: ${data.rule})`;
         } else {
-          document.getElementById('srv-info').innerHTML = `🔴 Server is <strong>OFFLINE</strong> on port 8000. Start it with 'python run_server.py'`;
+          document.getElementById('srv-info').innerHTML = ` Server is <strong>OFFLINE</strong> on port 8000. Start it with 'python run_server.py'`;
         }
       } catch (e) {
         document.getElementById('srv-info').textContent = 'Could not contact server on port 8000.';
@@ -320,7 +320,7 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
       const btn = document.getElementById(`btn-${cid}`);
       const log = document.getElementById(`log-${cid}`);
       btn.disabled = true;
-      btn.textContent = '⏳ Training locally (PyTorch SGD)...';
+      btn.textContent = ' Training locally (PyTorch SGD)...';
       log.className = 'log-box';
       log.innerHTML = `Downloading model weights...<br>Executing local forward & backward pass on 200 samples...`;
 
@@ -331,19 +331,19 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
         if (data.status === 'success') {
           log.className = 'log-box success';
           log.innerHTML = `
-            ✅ <strong>Update Accepted by Server (Round ${data.round_idx})</strong><br>
+             <strong>Update Accepted by Server (Round ${data.round_idx})</strong><br>
             • Local Loss: <strong>${data.loss}</strong> (1 epoch in ${data.duration_sec}s)<br>
             • Wire Size: <strong>${data.wire_kb} KB</strong> (Ratio: ${data.compression_ratio})<br>
-            • Gradient Norm ||Δw||: <code>${data.delta_norm}</code><br>
+            • Gradient Norm ||Delta_w||: <code>${data.delta_norm}</code><br>
             • Preview: <code>[${data.preview.join(', ')}]</code>
           `;
-          btn.textContent = `✓ Round ${data.round_idx} Completed`;
+          btn.textContent = `Round ${data.round_idx} Completed`;
         } else {
-          log.innerHTML = `❌ Error: ${data.message}`;
+          log.innerHTML = ` Error: ${data.message}`;
           btn.textContent = 'Retry Training';
         }
       } catch (e) {
-        log.innerHTML = `❌ Network Error: ${e}`;
+        log.innerHTML = ` Network Error: ${e}`;
         btn.textContent = 'Retry Training';
       } finally {
         setTimeout(() => { btn.disabled = false; }, 2000);
@@ -353,14 +353,14 @@ HTML_CLIENT_DASHBOARD = """<!DOCTYPE html>
     async function trainAllDevices() {
       const mainBtn = document.getElementById('btn-sync-fleet');
       mainBtn.disabled = true;
-      mainBtn.textContent = '⏳ Syncing Entire Fleet to Server...';
+      mainBtn.textContent = ' Syncing Entire Fleet to Server...';
 
       await trainDevice(0, 'identity');
       await trainDevice(1, 'identity');
       await trainDevice(2, 'ternary_2bit');
 
       mainBtn.disabled = false;
-      mainBtn.textContent = '⚡ Train Entire Fleet (One-Click Sync)';
+      mainBtn.textContent = ' Train Entire Fleet (One-Click Sync)';
       checkServer();
     }
   </script>

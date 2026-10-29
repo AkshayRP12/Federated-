@@ -1150,7 +1150,7 @@ def main():
         with col_sync_a:
             st.markdown("**Simulated Fleet**: 3 autonomous devices with private data partitions (`client_0`, `client_1`, `client_2`).")
         with col_sync_b:
-            if st.button("⚡ Sync Entire Fleet (All 3 Clients)", key="btn_sync_all_st", type="primary", disabled=not srv_online):
+            if st.button("Sync Entire Fleet (All 3 Clients)", key="btn_sync_all_st", type="primary", disabled=not srv_online):
                 with st.spinner("Training and uploading Client #00, #01, #02..."):
                     res0 = train_single_client_round(0, compressor_type="identity")
                     res1 = train_single_client_round(1, compressor_type="identity")
@@ -1214,10 +1214,10 @@ def main():
                     # Display result if present
                     if f"last_train_res_{d['id']}" in st.session_state:
                         lr_res = st.session_state[f"last_train_res_{d['id']}"]
-                        st.success(f"✓ Round {lr_res['round_idx']} Update Accepted!")
+                        st.success(f"Round {lr_res['round_idx']} Update Accepted!")
                         st.markdown(f"• **Loss**: `{lr_res['loss']}` (in {lr_res['duration_sec']}s)")
                         st.markdown(f"• **Wire Size**: `{lr_res['wire_kb']} KB` ({lr_res['compression_ratio']})")
-                        st.markdown(f"• **Gradient Norm**: `||Δw||={lr_res['delta_norm']}`")
+                        st.markdown(f"• **Gradient Norm**: `||Delta_w||={lr_res['delta_norm']}`")
                         st.caption(f"Preview: `[{', '.join(str(v) for v in lr_res['preview'])}]`")
 
         st.markdown("---")
