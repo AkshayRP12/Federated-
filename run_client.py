@@ -11,6 +11,7 @@ import sys
 import time
 import base64
 import argparse
+from typing import Dict, Any
 import requests
 import numpy as np
 import torch
@@ -131,7 +132,7 @@ def run_client(
 
             print(
                 f"    [CLIENT #{client_id:02d}] Training finished in {t_train_duration:.2f}s | "
-                f"Local Loss: {res.loss:.4f} | Gradient ||Δw||: {delta_norm:.4f}",
+                f"Local Loss: {res.loss:.4f} | Gradient ||Delta_w||: {delta_norm:.4f}",
                 flush=True,
             )
             print(
@@ -169,6 +170,107 @@ def run_client(
 
         # Sleep briefly between polls
         time.sleep(0.5)
+
+
+def train_single_client_round(
+    client_id: int,
+    server_url: str = "http://127.0.0.1:8000",
+    batch_size: int = 32,
+    epochs: int = 1,
+    lr: float = 0.01,
+    compressor_type: str = "identity",
+) -> Dict[str, Any]:
+    """Executes exactly one local training round for client_id and uploads the update to server_url."""
+    try:
+        resp = requests.get(f"{server_url}/model", timeout=3)
+        if resp.status_code != 200:
+            return {"status": "error", "message": f"Server returned status {resp.status_code}"}
+        model_info = resp.json()
+    except Exception as e:
+        return {"status": "error", "message": f"Could not connect to server at {server_url}: {e}"}
+
+    if model_info.get("is_completed", False):
+        return {"status": "completed", "message": "Server has already completed all rounds."}
+
+    server_round = model_info["round_idx"]
+
+    # Load local data partition
+    part_folder = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "partitions", f"client_{client_id}"
+    )
+    data_path = os.path.join(part_folder, "data.pt")
+    if not os.path.exists(data_path):
+        return {"status": "error", "message": f"Local partition not found at {data_path}"}
+
+    c_data = torch.load(data_path, weights_only=False)
+    num_samples = len(c_data["y"])
+    dataset = TensorDataset(c_data["x"], c_data["y"])
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    # Decode global weights
+    raw_b64 = model_info["weights_b64"]
+    weight_bytes = base64.b64decode(raw_b64.encode("utf-8"))
+    flat_weights = torch.from_numpy(np.frombuffer(weight_bytes, dtype=np.float32).copy())
+
+    template_model = MobileCNN(in_channels=1, num_classes=10)
+    template_state = {k: v.cpu().clone() for k, v in template_model.state_dict().items()}
+    global_state_dict = vector_to_state_dict(flat_weights, template_state)
+
+    # Setup compressor & client algorithm
+    compressor = ThresholdedTernaryCompressor() if compressor_type == "ternary_2bit" else IdentityCompressor()
+    client_algo = FedAvgClient(
+        client_id=client_id,
+        model_fn=lambda: MobileCNN(in_channels=1, num_classes=10),
+        device=torch.device("cpu"),
+        learning_rate=lr,
+    )
+
+    t_start = time.time()
+    res = client_algo.train(global_state_dict=global_state_dict, dataloader=dataloader, epochs=epochs)
+    duration = time.time() - t_start
+
+    # Compress delta
+    comp_delta, wire_bytes = compressor.compress(res.delta)
+    wire_kb = wire_bytes / 1024.0
+    uncomp_kb = (res.delta.numel() * 4) / 1024.0
+
+    delta_norm = float(torch.norm(res.delta).item())
+    sample_vals = [round(float(v), 5) for v in res.delta[:4].tolist()]
+
+    delta_bytes = comp_delta.numpy().tobytes()
+    delta_b64 = base64.b64encode(delta_bytes).decode("utf-8")
+
+    upload_payload = {
+        "client_id": client_id,
+        "round_idx": server_round,
+        "num_samples": res.num_samples,
+        "delta_b64": delta_b64,
+        "wire_bytes": wire_bytes,
+        "loss": float(res.loss),
+    }
+
+    try:
+        up_resp = requests.post(f"{server_url}/upload_update", json=upload_payload, timeout=10)
+        if up_resp.status_code == 200:
+            server_feedback = up_resp.json()
+            return {
+                "status": "success",
+                "round_idx": server_round,
+                "client_id": client_id,
+                "num_samples": num_samples,
+                "loss": round(float(res.loss), 4),
+                "wire_kb": round(wire_kb, 2),
+                "uncompressed_kb": round(uncomp_kb, 2),
+                "compression_ratio": f"{uncomp_kb / max(0.1, wire_kb):.1f}x",
+                "delta_norm": round(delta_norm, 4),
+                "preview": sample_vals,
+                "duration_sec": round(duration, 2),
+                "server_feedback": server_feedback,
+            }
+        else:
+            return {"status": "error", "message": f"Server rejected update: {up_resp.text}"}
+    except Exception as e:
+        return {"status": "error", "message": f"Upload network error: {e}"}
 
 
 if __name__ == "__main__":

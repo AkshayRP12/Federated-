@@ -494,7 +494,7 @@ def upload_update(payload: UpdatePayload):
 
     print(
         f"[SERVER] Received Gradient Update from Client #{payload.client_id:02d} (Round {payload.round_idx}):\n"
-        f"         - Payload Type: Neural Network Parameter Gradient (Δw, {flat_arr.numel()} weights)\n"
+        f"         - Payload Type: Neural Network Parameter Gradient (Delta_w, {flat_arr.numel()} weights)\n"
         f"         - Gradient L2 Norm: {delta_norm:.4f} | Preview: {sample_preview}\n"
         f"         - Wire Size: {size_kb:.2f} KB | Local Samples: {payload.num_samples} | Loss: {payload.loss:.4f}",
         flush=True,

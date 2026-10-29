@@ -27,6 +27,7 @@ from flaas.fl.server_rules import FedAvgMean, TrimmedMean, Krum, state_dict_to_v
 from flaas.compression.compressors import IdentityCompressor, ThresholdedTernaryCompressor, QSGDCompressor
 from flaas.fl.metrics import evaluate_model
 from flaas.fl.device import clear_device_memory
+from run_client import train_single_client_round
 
 # Set page configuration with wide layout
 st.set_page_config(
@@ -538,8 +539,13 @@ def main():
     st.caption("Limitations: Evaluated across 2 domains, 1 seed (seed 42), subsampled data, and simulated clients.")
 
     # Main Tabs
-    tab_rec, tab_live, tab_server = st.tabs(
-        ["Configuration Recommender", "Live Federated View", "Central Server Monitor (Part B)"]
+    tab_rec, tab_live, tab_server, tab_client = st.tabs(
+        [
+            "Configuration Recommender",
+            "Live Federated View",
+            "Central Server Monitor (Port 8000)",
+            "Edge Client Fleet Simulator (Port 8001)",
+        ]
     )
 
     # Load results store
@@ -1115,6 +1121,110 @@ def main():
                 "Direct Web Dashboard: [Open Server Control Panel (http://localhost:8000)](http://localhost:8000) | "
                 "[OpenAPI / Swagger Docs](http://localhost:8000/docs)"
             )
+
+    # =========================================================================
+    # TAB 4: EDGE CLIENT FLEET SIMULATOR (PORT 8001)
+    # =========================================================================
+    with tab_client:
+        st.subheader("Edge Client Device Fleet Simulator")
+        st.caption("Trigger local model training on isolated edge devices and upload model parameter updates.")
+
+        # Check server connection
+        server_url = "http://127.0.0.1:8000"
+        srv_online = False
+        try:
+            r = requests.get(f"{server_url}/info", timeout=1.0)
+            if r.status_code == 200:
+                srv_data = r.json()
+                srv_online = True
+                st.success(
+                    f"Connected to Central Server (Round {srv_data['current_round']} / {srv_data['target_rounds']} | "
+                    f"Global Accuracy: {srv_data['global_accuracy']:.2f}% | Aggregation: {srv_data['rule']})"
+                )
+            else:
+                st.warning("Central Server on port 8000 returned non-200.")
+        except Exception:
+            st.error("Central Server is OFFLINE on port 8000. Start it with `python run_server.py --port 8000`.")
+
+        col_sync_a, col_sync_b = st.columns([2, 1])
+        with col_sync_a:
+            st.markdown("**Simulated Fleet**: 3 autonomous devices with private data partitions (`client_0`, `client_1`, `client_2`).")
+        with col_sync_b:
+            if st.button("⚡ Sync Entire Fleet (All 3 Clients)", key="btn_sync_all_st", type="primary", disabled=not srv_online):
+                with st.spinner("Training and uploading Client #00, #01, #02..."):
+                    res0 = train_single_client_round(0, compressor_type="identity")
+                    res1 = train_single_client_round(1, compressor_type="identity")
+                    res2 = train_single_client_round(2, compressor_type="ternary_2bit")
+                    st.success("All 3 client updates submitted! Server aggregation complete.")
+                    st.rerun()
+
+        # 3 Device Columns
+        dev_col0, dev_col1, dev_col2 = st.columns(3)
+
+        devices = [
+            {
+                "id": 0,
+                "col": dev_col0,
+                "name": "Client #00: Smartphone",
+                "hardware": "Google Pixel 7 (Simulated)",
+                "comp": "identity",
+                "badge": "FP32 Uncompressed (413.9 KB)",
+                "color": "blue",
+            },
+            {
+                "id": 1,
+                "col": dev_col1,
+                "name": "Client #01: Tablet",
+                "hardware": "Samsung Galaxy Tab (Simulated)",
+                "comp": "identity",
+                "badge": "FP32 Uncompressed (413.9 KB)",
+                "color": "blue",
+            },
+            {
+                "id": 2,
+                "col": dev_col2,
+                "name": "Client #02: Smartwatch",
+                "hardware": "Low-Power IoT (Bandwidth Constrained)",
+                "comp": "ternary_2bit",
+                "badge": "2-Bit Ternary (25.8 KB - 16x Smaller)",
+                "color": "green",
+            },
+        ]
+
+        for d in devices:
+            with d["col"]:
+                with st.container(border=True):
+                    st.markdown(f"#### {d['name']}")
+                    st.caption(f"{d['hardware']}")
+                    st.info(f"**Compression**: {d['badge']}")
+                    st.markdown(f"• Partition: `data/partitions/client_{d['id']}/data.pt`")
+                    st.markdown("• Samples: **200 private MNIST digits**")
+                    st.markdown("• Training: 1 local SGD epoch")
+
+                    # Training button
+                    btn_key = f"btn_train_dev_{d['id']}"
+                    if st.button(f"Train Device #{d['id']:02d} & Upload", key=btn_key, disabled=not srv_online):
+                        with st.spinner(f"Training Client #{d['id']:02d} (PyTorch forward + backward)..."):
+                            res = train_single_client_round(d["id"], compressor_type=d["comp"])
+                            if res.get("status") == "success":
+                                st.session_state[f"last_train_res_{d['id']}"] = res
+                            else:
+                                st.error(res.get("message", "Training error"))
+
+                    # Display result if present
+                    if f"last_train_res_{d['id']}" in st.session_state:
+                        lr_res = st.session_state[f"last_train_res_{d['id']}"]
+                        st.success(f"✓ Round {lr_res['round_idx']} Update Accepted!")
+                        st.markdown(f"• **Loss**: `{lr_res['loss']}` (in {lr_res['duration_sec']}s)")
+                        st.markdown(f"• **Wire Size**: `{lr_res['wire_kb']} KB` ({lr_res['compression_ratio']})")
+                        st.markdown(f"• **Gradient Norm**: `||Δw||={lr_res['delta_norm']}`")
+                        st.caption(f"Preview: `[{', '.join(str(v) for v in lr_res['preview'])}]`")
+
+        st.markdown("---")
+        st.markdown(
+            "Dedicated Client Fleet Dashboard: [Open Client Web UI (http://localhost:8001)](http://localhost:8001) | "
+            "Server Control Panel: [Open Server Web UI (http://localhost:8000)](http://localhost:8000)"
+        )
 
 
 if __name__ == "__main__":
